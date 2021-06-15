@@ -101,19 +101,19 @@ linux | windows)
   # The `buildId` is the query parameter of the resulting web page
   case ${version} in
   v1.18.3) buildId=75331 ;;
-  v1.18.2) buildId=72198 ;;
-  v1.18.1) buildId=72179 ;; # no docker images, but windows is there
+  v1.18.2) ;; # buildId=72198 publishedArtifacts aren't visible
+  v1.18.1) not_yet_version ;; # buildId=72179 publishedArtifacts aren't visible and no docker image!
   v1.18.0) not_yet_version ;; # buildId=72169 publishedArtifacts aren't visible and no docker image!
   v1.17.3) buildId=75332 ;;
-  v1.17.2) buildId=72166 ;;
+  v1.17.2) ;; # buildId=72166 publishedArtifacts aren't visible
   v1.17.1) ;; # buildId=67489 publishedArtifacts aren't visible
   v1.16.4) buildId=75333 ;;
-  v1.16.3) buildId=72165 ;; # explicitly requested tetratelabs/getenvoy#274
+  v1.16.3) ;; # buildId=72165 publishedArtifacts aren't visible; requested tetratelabs/getenvoy#274
   v1.16.2) ;; # buildId=60159 publishedArtifacts aren't visible
   v1.15.5) buildId=75334 ;;
   v1.15.4) buildId=72164 ;;
   v1.15.3) ;; # buildId=60136 publishedArtifacts aren't visible
-  v1.14.7) buildId=72163 ;;
+  v1.14.7) ;; # buildId=72163 publishedArtifacts aren't visible
   v1.14.6) ;; # buildId=60135 publishedArtifacts aren't visible
   v1.14.0) not_yet_version ;; # buildId=unknown and no docker image!
   v1.13.5) not_yet_version ;; # buildId=52493 publishedArtifacts aren't visible and no docker image!
