@@ -1,5 +1,0 @@
-[[redirects]]
-  from = "/envoy/*"
-  to = "/releases/download/:splat"
-  status = 302
-  force = true
