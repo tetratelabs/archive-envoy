@@ -1,0 +1,5 @@
+[[redirects]]
+  from = "/envoy/*"
+  to = "https://github.com/tetratelabs/archive-envoy/releases/download/:splat"
+  status = 302
+  force = true
