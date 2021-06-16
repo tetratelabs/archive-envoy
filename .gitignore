@@ -1,3 +1,9 @@
 .idea
 # any version folders
 /v*
+
+# generated at build time
+public/envoy-versions.json
+.netlify
+
+bin/getenvoy

@@ -1,0 +1,17 @@
+[build]
+# By default, host tarballURLs relative to the production URL
+command = "./build.sh https://archive.tetratelabs.io/envoy"
+publish = "public/"
+
+# ex https://archive.tetratelabs.io/envoy/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
+# -> https://archive-envoy.netlify.app/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
+# -> https://github.com/tetratelabs/archive-envoy/releases/download/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
+[[redirects]]
+from = "/v*"
+to = "https://github.com/tetratelabs/archive-envoy/releases/download/:splat"
+status = 302
+force = true
+
+[context.deploy-preview]
+# On pull request, host tarballURLs relative to the preview app
+command = "./build.sh ${DEPLOY_PRIME_URL}"
