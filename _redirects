@@ -1,2 +1,1 @@
-https://archive.tetratelabs.io/envoy/* https://github.com/tetratelabs/archive-envoy/releases/download/:splat 301!
-http://archive.tetratelabs.io/envoy/* https://github.com/tetratelabs/archive-envoy/releases/download/:splat 301!
+/envoy/* https://github.com/tetratelabs/archive-envoy/releases/download/:splat 301!
