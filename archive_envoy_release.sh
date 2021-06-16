@@ -38,7 +38,7 @@ export RELEASE_DATE
 
 echo "archiving ${version} released on ${RELEASE_DATE}"
 # archive all dists for the version, generating the envoy-versions.json format incrementally
-envoy_versions="{}"
+envoyVersions="{}"
 for os in darwin linux windows; do
   for arch in amd64 arm64; do
 
@@ -54,18 +54,18 @@ for os in darwin linux windows; do
     # strip the v off the tag name more shell portable than ${version:1}
     v=$(echo "${version}" | cut -c2-100)
     # use printf because jq doesn't support parameterizing the key names, only the key values
-    next_envoy_dist=$(printf '{"latestVersion": "%s", "versions": { "%s": {"releaseDate": "%s", "tarballs": {"%s": "%s"}}}, "sha256sums": {"%s": "%s"}}' \
+    nextEnvoyVersion=$(printf '{"latestVersion": "%s", "versions": { "%s": {"releaseDate": "%s", "tarballs": {"%s": "%s"}}}, "sha256sums": {"%s": "%s"}}' \
       "$v" "$v" "${RELEASE_DATE}" "${os}/${arch}" "${archiveBaseUrl}/${f}" "${f}" "$s")
-    # merge the pending envoy_versions json to include the next dist
-    envoy_versions=$(echo "${envoy_versions}" "${next_envoy_dist}" | jq -Sse '.[0] * .[1]')
+    # merge the pending envoyVersions json to include the next dist
+    envoyVersions=$(echo "${envoyVersions}" "${nextEnvoyVersion}" | jq -Sse '.[0] * .[1]')
   done
 done
 
 [ "${op}" = 'check' ] && exit 0
-[ "${envoy_versions}" = '{}' ] && exit 1
+[ "${envoyVersions}" = '{}' ] && exit 1
 
 # reorder top-level keys so that versions appear before sha256sums
-envoy_versions=$(echo "${envoy_versions}" | jq '{latestVersion: .latestVersion, versions: .versions, sha256sums: .sha256sums}')
+envoyVersions=$(echo "${envoyVersions}" | jq '{latestVersion: .latestVersion, versions: .versions, sha256sums: .sha256sums}')
 # Write the versions file and reset file date as if they were published at the same time
-echo "${envoy_versions}" >"${version}/envoy-${version}.json"
+echo "${envoyVersions}" >"${version}/envoy-${version}.json"
 find "${version}" -exec touch -t "${RELEASE_DATE}" {} \;
