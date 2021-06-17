@@ -7,10 +7,9 @@ publish = "public/"
 # -> https://archive-envoy.netlify.app/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
 # -> https://github.com/tetratelabs/archive-envoy/releases/download/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
 [[redirects]]
-from = "/v*"
-to = "https://github.com/tetratelabs/archive-envoy/releases/download/:splat"
+from = "/:version/:tarball"
+to = "https://github.com/tetratelabs/archive-envoy/releases/download/:version/:tarball"
 status = 302
-force = true
 
 [context.deploy-preview]
 # On pull request, host tarballURLs relative to the preview app
