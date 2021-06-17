@@ -20,7 +20,7 @@
 # Ensure we have tools we need installed
 curl --version >/dev/null
 jq --version >/dev/null
-curl="curl -sSL"
+curl="curl -fsSL"
 
 githubRepo="${1?-githubRepo required ex tetratelabs/archive-envoy}"
 downloadBaseURL="${2?-downloadBaseURL required ex https://archive.tetratelabs.io/envoy/download}"
@@ -30,7 +30,7 @@ redirectsTo="https://github.com/${githubRepo}/releases/download"
 # archive all dists for the version, generating the envoy-versions.json format incrementally
 releaseVersions="{}"
 versions=$(${curl} -sSL "https://api.github.com/repos/${githubRepo}/releases?per_page=100" |
-  jq -er ".|map(.name)|.[]" | sort -n) || exit 1
+  jq -er ".|map(select(.prerelease == false and .draft == false))|.[]|.name" | sort -n) || exit 1
 
 for version in ${versions}; do
   versionsUrl="${redirectsTo}/${version}/envoy-${version}.json"
