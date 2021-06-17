@@ -44,7 +44,7 @@ curl --version >/dev/null
 tar=tar
 docker --version >/dev/null
 # we need GNU tar. On Darwin, the system default is not gtar. `brew install gtar` if that's you!
-which gtar > /dev/null && tar=gtar
+which gtar >/dev/null && tar=gtar
 ${tar} --version | grep 'GNU tar' >/dev/null
 
 # Verify args
@@ -76,7 +76,7 @@ not_yet_version() {
   echo >&2 "version ${version} not yet supported on ${os}-${arch}" && exit 1
 }
 
-curl="curl -sSL"
+curl="curl -fsSL"
 untargz="${tar} --no-same-owner -xpzf"
 
 # Setup defaults that make archival consistent between runs
@@ -159,7 +159,12 @@ if [ "${dockerImage:-}" != '' ]; then
   [ "${op}" = 'check' ] && exit 0
 else
   echo "checking downloadURL ${downloadURL}"
-  ${curl} --head "${downloadURL}" >/dev/null || exit 1
+  if [ "${artifactName:-}" != '' ]; then # Azure Pipelines doesn't support HTTP HEAD
+    jsonURL=$(echo "${downloadURL}" | sed 's/format=zip/format=json/g')
+    ${curl} "${jsonURL}" >/dev/null || exit 1
+  else
+    ${curl} --head "${downloadURL}" >/dev/null || exit 1
+  fi
   [ "${op}" = 'check' ] && exit 0
   echo "downloading ${downloadURL}"
 fi

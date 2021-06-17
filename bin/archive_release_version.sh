@@ -35,7 +35,7 @@ releaseScript="./archive_${name}_release.sh"
 export TZ=UTC
 # ex. "2021-05-11T19:15:27Z" ->  "2021-05-11"
 RELEASE_DATE=$(curl -sSL "https://api.github.com/repos/${sourceGitHubRepository}/releases"'?per_page=100' |
-  jq -er ".|map(select(.name ==\"$version\"))|first|.published_at" | cut -c1-10) || exit 1
+  jq -er ".|map(select(.prerelease == false and .draft == false and .name ==\"$version\"))|first|.published_at" | cut -c1-10) || exit 1
 export RELEASE_DATE
 
 echo "archiving ${sourceGitHubRepository} ${version} released on ${RELEASE_DATE}"
@@ -69,5 +69,5 @@ done
 # reorder top-level keys so that versions appear before sha256sums
 releaseVersions=$(echo "${releaseVersions}" | jq '{latestVersion: .latestVersion, versions: .versions, sha256sums: .sha256sums}')
 # Write the versions file and reset file date as if they were published at the same time
-echo "${releaseVersions}" >"${version}/release-${version}.json"
+echo "${releaseVersions}" >"${version}/${name}-${version}.json"
 find "${version}" -exec touch -t "${RELEASE_DATE}" {} \;

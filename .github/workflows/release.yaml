@@ -25,3 +25,10 @@ jobs:
           artifacts: "${{ env.TAG }}/*"
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install netlify-cli  # don't use the GHA as it succeeds on failure
+        run: npm install netlify-cli -g
+      - name: Trigger Netlify deploy  # The above upload won't create a GHA trigger, so we make one directly
+        run: netlify deploy --trigger --auth=${NETLIFY_AUTH_TOKEN} --site=${NETLIFY_SITE_ID}
+        env: # https://github.com/tetratelabs/archive-envoy/settings/secrets
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}  # https://app.netlify.com/user/applications/personal
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}  # .netlify/state.json/siteId
