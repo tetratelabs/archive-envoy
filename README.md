@@ -1,36 +1,54 @@
 # Archive of Envoy® release binaries
 As of June 2021, Envoy binaries are available in different places under different retention policies, or without a
-policy. This script helps you create an archive of Envoy binaries so that you can still use it later.
+policy. This repository's releases archive Envoy binaries so that they can have permalinks.
 
-The tool creates a tarball with exactly the same binary as what users would have, if they used Docker or Homebrew
+Specifically, these are tarballs with exactly the same binary as what users would have, if they used Docker or Homebrew
 instructions from here: https://www.envoyproxy.io/docs/envoy/latest/start/install
 
-## Archive format
-This archives `$version/envoy-$version-$os-$arch.tar.xz` for every platform, including a production, non-debug, binary.
+## Release artifacts
+Each release includes `envoy-$version-$os-$arch.tar.xz` for every platform, including a production, non-debug, binary.
 
 Here are a couple examples:
- * `v1.18.3/envoy-v1.18.3-linux-amd64.xz` contains only `envoy-v1.18.3-linux-amd64/bin/envoy`
- * `v1.18.3/envoy-v1.18.3-windows-amd64.tar.xz` contains only `envoy-v1.18.3-windows-amd64/bin/envoy.exe`
+ * `envoy-v1.18.3-linux-amd64.xz` contains only `envoy-v1.18.3-linux-amd64/bin/envoy`
+ * `envoy-v1.18.3-windows-amd64.tar.xz` contains only `envoy-v1.18.3-windows-amd64/bin/envoy.exe`
 
-This also creates [`$version/envoy-$version.json`](https://getenvoy.io/envoy-versions-schema.json) with sha256sums.
+It also includes `envoy-$version.json` which adheres to the [release versions schema](https://archive.tetratelabs.io/release-versions-schema.json).
 
 ## Archiving a release
-Archiving a version means running [archive_envoy_release.sh](archive_envoy_release.sh) for the version you want.
+Archiving a version means running [archive_release_version.sh](bin/archive_release_version.sh) for the version you want.
 
-Ex.
+This happens automatically in [GitHub Actions](.github/workflows/release.yaml) a git tag push (ex. v1.18.3)
+
+Ex. You can also run manually like this:
 ```bash
 # optionally check first
 export GITHUB_REPOSITORY=your_account/your_repo
-./archive_envoy_release v1.18.3 check
-./archive_envoy_release v1.18.3
+./bin/archive_release_version.sh envoyproxy/envoy v1.18.3 check
+./bin/archive_release_version.sh envoyproxy/envoy v1.18.3
 ```
 
-## Rationale
-Here are some examples of why stable archives are needed:
+## Regenerating the release versions list
+https://archive.tetratelabs.io/envoy/envoy-versions.json is created automatically on master push, but you can also
+trigger it on-demand via `netlify deploy`.
+
+The [Netlify build](build.sh) generates `public/envoy-versions.json` instead of checking this into git. This simplifies
+maintenance and also allows preview deploys to verify its contents.
+
+If you want to run the build manually, you can.
+```bash
+# in one window
+netlify dev
+netlify build
+open http://localhost:8888/envoy-versions.json
+```
+
+## Archive Rationale
+Here are some examples of why stable archives help:
 * Envoy "release" build in Azure Pipelines uploads releases as zip files
     * https://dev.azure.com/cncf/envoy/_build
     * These weren't designed for stable use, rather build stages.
     * The retention policy is 365 days
+    * Access to builds sometimes disappears for other reasons
 * Envoy "official" tarballs aren't currently implemented
     * https://github.com/envoyproxy/envoy/issues/16830 will eventually define stable tars
     * Which version+os+arch dimensions to publish, and the retention policy are yet unknown

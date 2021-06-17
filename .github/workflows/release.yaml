@@ -18,7 +18,7 @@ jobs:
       - name: Get the release tag name
         run: echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
       - name: Archive Envoy Release
-        run: ./archive_envoy_release.sh ${{ env.TAG }}
+        run: ./bin/archive_release_version.sh envoyproxy/envoy ${{ env.TAG }}
       - name: Upload GitHub Release
         uses: ncipollo/release-action@v1
         with:
