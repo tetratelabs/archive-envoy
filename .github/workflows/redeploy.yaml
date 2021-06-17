@@ -1,0 +1,30 @@
+# `name` value will appear "as is" in the badge.
+# See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
+# yamllint --format github .github/workflows/redeploy.yaml
+---
+name: "redeploy"
+
+on:
+  delete:  # just in case a release was deleted via its tag
+    tags: 'v[0-9]+.[0-9]+.[0-9]+**'  # Ex. v1.18.3
+  release:
+    types:
+      - edited
+      - published
+      - deleted
+
+jobs:
+  # Automates "Trigger Deploy" on https://app.netlify.com/sites/archive-envoy/deploys to avoid manual steps
+  redeploy:
+    name: Redeploy archive-envoy.netlify.app (https://archive.tetratelabs.io/envoy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run Netlify Deploy
+        uses: netlify/actions/cli@master
+        env: # https://github.com/tetratelabs/archive-envoy/settings/secrets
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}  # https://app.netlify.com/user/applications/personal
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}  # .netlify/state.json/siteId
+        with:
+          args: deploy --prod
