@@ -14,13 +14,13 @@ on:
       - deleted
 
 jobs:
-  archive:
-    name: Archive Envoy® Release
+  redeploy:
+    name: Redeploy archive-envoy.netlify.app (https://archive.tetratelabs.io/envoy)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Redeploy archive-envoy.netlify.app (https://archive.tetratelabs.io/envoy)
+      - name: Run Netlify Deploy
         uses: netlify/actions/cli@master
         env:  # https://github.com/tetratelabs/archive-envoy/settings/secrets
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}  # https://app.netlify.com/user/applications/personal
