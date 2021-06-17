@@ -23,7 +23,7 @@ jq --version >/dev/null
 curl="curl -sSL"
 
 githubRepo="${1?-githubRepo required ex tetratelabs/archive-envoy}"
-baseURL="${2?-baseURL required ex https://archive.tetratelabs.io/envoy/download}"
+downloadBaseURL="${2?-downloadBaseURL required ex https://archive.tetratelabs.io/envoy/download}"
 # This must match netlify.toml redirects
 redirectsTo="https://github.com/${githubRepo}/releases/download"
 
@@ -34,7 +34,7 @@ versions=$(${curl} -sSL "https://api.github.com/repos/${githubRepo}/releases?per
 
 for version in ${versions}; do
   versionsUrl="${redirectsTo}/${version}/envoy-${version}.json"
-  nextReleaseVersion=$(${curl} "${versionsUrl}" | sed "s~${redirectsTo}~${baseURL}~g") || exit 1
+  nextReleaseVersion=$(${curl} "${versionsUrl}" | sed "s~${redirectsTo}~${downloadBaseURL}~g") || exit 1
   # merge the pending releaseVersions json to include the next one
   releaseVersions=$(echo "${releaseVersions}" "${nextReleaseVersion}" | jq -Sse '.[0] * .[1]')
 done

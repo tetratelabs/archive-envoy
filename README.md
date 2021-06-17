@@ -38,9 +38,7 @@ If you want to run the build manually, you can.
 ```bash
 # in one window
 netlify dev
-# Build locally. "--context deploy-preview" acts the same as a pull request
-DEPLOY_PRIME_URL=http://localhost:8888 netlify build --context deploy-preview
-# Now look at the resulting json, noting is already tested if the above succeeds
+netlify build
 open http://localhost:8888/envoy-versions.json
 ```
 

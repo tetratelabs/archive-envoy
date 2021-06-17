@@ -1,11 +1,18 @@
 [build]
-# By default, host tarballURLs relative to the production URL
-command = "./build.sh https://archive.tetratelabs.io/envoy"
-publish = "public/"
+command = "./build.sh https://archive.tetratelabs.io/envoy/download"
+publish = "public"
+
+[context]
+[context.branch-deploy]
+command = "./build.sh https://archive.tetratelabs.io/envoy/download ${DEPLOY_PRIME_URL}"
+[context.deploy-preview]
+command = "./build.sh ${DEPLOY_PRIME_URL}/download ${DEPLOY_PRIME_URL}"
 
 # ex https://archive.tetratelabs.io/envoy/download/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
 # -> https://archive-envoy.netlify.app/download/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
 # -> https://github.com/tetratelabs/archive-envoy/releases/download/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
+#
+# Note: this currently doesn't work in dev https://github.com/netlify/cli/issues/2708
 [[redirects]]
 # Note: We need a full path match here because Netlify doesn't support more complex expressions.
 # See https://stackoverflow.com/questions/50036242/rewrite-html-files-in-netlify
@@ -13,7 +20,3 @@ from = "/download/*"
 to = "https://github.com/tetratelabs/archive-envoy/releases/download/:splat"
 force = true
 status = 302
-
-[context.deploy-preview]
-# On pull request, host tarballURLs relative to the preview app
-command = "./build.sh ${DEPLOY_PRIME_URL}"

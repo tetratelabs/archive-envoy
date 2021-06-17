@@ -1,14 +1,16 @@
 #!/bin/sh -uex
-baseURL="${1?-baseURL required ex https://archive.tetratelabs.io/envoy}"
-ENVOY_VERSIONS_URL="${DEPLOY_PRIME_URL?-required ex http://localhost:8888}/envoy-versions.json"
+downloadBaseURL="${1?-downloadBaseURL required ex https://archive.tetratelabs.io/envoy}"
+
+bin/consolidate_release_versions.sh tetratelabs/archive-envoy "${downloadBaseURL}" >public/envoy-versions.json
+
+testURL=${2:-}
+[ "${testURL}" = '' ] && exit 0
 
 # Ensure we have tools we need installed
 export PATH=bin:$PATH
 getenvoy -v >/dev/null 2>&1 || curl -sSL https://getenvoy.io/install.sh | sh -s
 
-consolidate_release_versions.sh tetratelabs/archive-envoy "${baseURL}/download" > public/envoy-versions.json
-
 # test getenvoy with the generated version list
-export ENVOY_VERSIONS_URL
+export ENVOY_VERSIONS_URL="${testURL}/envoy-versions.json"
 getenvoy versions -a
 getenvoy run --version
