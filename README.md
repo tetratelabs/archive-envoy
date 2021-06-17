@@ -2,8 +2,11 @@
 As of June 2021, Envoy binaries are available in different places under different retention policies, or without a
 policy. This repository's releases archive Envoy binaries so that they can have permalinks.
 
-Specifically, these are tarballs with exactly the same binary as what users would have, if they used Docker or Homebrew
-instructions from here: https://www.envoyproxy.io/docs/envoy/latest/start/install
+The archived releases have permalinks in [envoy-versions.json](https://archive.tetratelabs.io/envoy/envoy-versions.json),
+which adheres to the [release versions schema](https://archive.tetratelabs.io/release-versions-schema.json).
+
+Specifically, releases include a tarball per plaftform with exactly the same binary as what users would have, if
+they used Docker or Homebrew instructions from here: https://www.envoyproxy.io/docs/envoy/latest/start/install
 
 ## Release artifacts
 Each release includes `envoy-$version-$os-$arch.tar.xz` for every platform, including a production, non-debug, binary.
@@ -44,6 +47,8 @@ open http://localhost:8888/envoy-versions.json
 
 ## Archive Rationale
 Here are some examples of why stable archives help:
+* Most release sources don't have permalinks
+    * In the past tarballs hosted on Bintray, which is being turned down, invalidating links.
 * Envoy "release" build in Azure Pipelines uploads releases as zip files
     * https://dev.azure.com/cncf/envoy/_build
     * These weren't designed for stable use, rather build stages.
