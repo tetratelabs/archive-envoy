@@ -31,8 +31,8 @@ export GITHUB_REPOSITORY=your_account/your_repo
 ```
 
 ## Regenerating the release versions list
-https://archive.tetratelabs.io/envoy/envoy-versions.json is created automatically on master push, but you can also
-trigger it on-demand via `netlify deploy`.
+https://archive.tetratelabs.io/envoy/envoy-versions.json is created automatically on a release tag or on master push.
+You can also trigger it on-demand via `netlify deploy`.
 
 The [Netlify build](build.sh) generates `public/envoy-versions.json` instead of checking this into git. This simplifies
 maintenance and also allows preview deploys to verify its contents.
