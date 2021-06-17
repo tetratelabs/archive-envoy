@@ -6,7 +6,7 @@ ENVOY_VERSIONS_URL="${DEPLOY_PRIME_URL?-required ex http://localhost:8888}/envoy
 export PATH=bin:$PATH
 getenvoy -v >/dev/null 2>&1 || curl -sSL https://getenvoy.io/install.sh | sh -s
 
-consolidate_release_versions.sh tetratelabs/archive-envoy "${baseURL}" > public/envoy-versions.json
+consolidate_release_versions.sh tetratelabs/archive-envoy "${baseURL}/download" > public/envoy-versions.json
 
 # test getenvoy with the generated version list
 export ENVOY_VERSIONS_URL

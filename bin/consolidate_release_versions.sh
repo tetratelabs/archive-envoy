@@ -14,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This creates a json file including all archived releases of a GitHub Repository
+# This creates a json file including all archived releases of a GitHub Repository.
+# Notably, this rewrites tarballURLs as permalinks
 
 # Ensure we have tools we need installed
 curl --version >/dev/null
@@ -22,7 +23,7 @@ jq --version >/dev/null
 curl="curl -sSL"
 
 githubRepo="${1?-githubRepo required ex tetratelabs/archive-envoy}"
-baseURL="${2?-baseURL required ex https://archive.tetratelabs.io/envoy}"
+baseURL="${2?-baseURL required ex https://archive.tetratelabs.io/envoy/download}"
 # This must match netlify.toml redirects
 redirectsTo="https://github.com/${githubRepo}/releases/download"
 

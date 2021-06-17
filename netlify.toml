@@ -3,12 +3,15 @@
 command = "./build.sh https://archive.tetratelabs.io/envoy"
 publish = "public/"
 
-# ex https://archive.tetratelabs.io/envoy/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
-# -> https://archive-envoy.netlify.app/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
+# ex https://archive.tetratelabs.io/envoy/download/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
+# -> https://archive-envoy.netlify.app/download/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
 # -> https://github.com/tetratelabs/archive-envoy/releases/download/v1.12.2/envoy-v1.12.2-linux-amd64.tar.xz
 [[redirects]]
-from = "/:version/:tarball"
-to = "https://github.com/tetratelabs/archive-envoy/releases/download/:version/:tarball"
+# Note: We need a full path match here because Netlify doesn't support more complex expressions.
+# See https://stackoverflow.com/questions/50036242/rewrite-html-files-in-netlify
+from = "/download/*"
+to = "https://github.com/tetratelabs/archive-envoy/releases/download/:splat"
+force = true
 status = 302
 
 [context.deploy-preview]
