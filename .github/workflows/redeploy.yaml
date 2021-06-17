@@ -27,4 +27,4 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}  # https://app.netlify.com/user/applications/personal
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}  # .netlify/state.json/siteId
         with:
-          args: deploy --prod
+          args: deploy --build --prod
