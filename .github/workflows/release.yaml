@@ -19,12 +19,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Archive Envoy Release
-        run: ./bin/archive_release_version.sh envoyproxy/envoy ${{ github.event.inputs.version }}
+        run: ./bin/archive_release_version.sh envoyproxy/envoy "${{ github.event.inputs.version }}"
       - name: Upload GitHub Release
         uses: ncipollo/release-action@v1
         with:
           artifacts: "${{ github.event.inputs.version }}/*"
           allowUpdates: true
+          tag: ${{ github.event.inputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install netlify-cli  # don't use the GHA as it succeeds on failure
         run: npm install --save-dev netlify-cli
