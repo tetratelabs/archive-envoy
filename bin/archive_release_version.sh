@@ -14,9 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This creates a directory archiving a GitHub release including all available platforms.
+# This creates a directory archiving a GitHub release version for all available platforms.
 #  * The first parameter ($1) is the source GitHub repository to archive. Ex envoyproxy/envoy
-#  * The second parameter ($2) is optional, either "archive" (default) or "check"
+#  * The second parameter ($2) is the version. Ex "v1.18.3" or "v1.18.3_debug"
+#  * The third parameter ($3) is optional, either "archive" (default) or "check"
 #
 # The result is a directory $2 which includes all files that should be in an archive release, notably tarballs and a
 # release version list in JSON format. Platforms which fail for any reason are not included in the JSON list.
@@ -24,8 +25,11 @@
 # This depends on a shell script specific to the source repository in the current working directory. This produces
 # $name-$version-$os-$arch.tar.xz on success and failures are ignored. The $name is the basename of $1
 #
-# For example, if $1=envoyproxy/envoy, this executes `./tar_envoy_release.sh $version $os $arch $2` for each
-# release $version found in https://api.github.com/repos/$1/releases
+# For example, if $1=envoyproxy/envoy, this executes `./tar_envoy_release.sh $2 $os $arch $3`.
+#
+# NOTE: $2 is stripped of "_debug" when looking up the source release https://github.com/$1/releases/tag/$2
+# For example, if $1=envoyproxy/envoy $2=v1.18.3_debug the source release is https://github.com/envoyproxy/envoy/releases/tag/v1.18.3
+# The "_debug" suffix allows the tar script to separate huge debug files from production ones.
 
 # Verify args
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}
