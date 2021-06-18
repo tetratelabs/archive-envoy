@@ -19,17 +19,24 @@
 #  * The second parameter ($2) is the version. Ex "v1.18.3" or "v1.18.3_debug"
 #  * The third parameter ($3) is optional, either "archive" (default) or "check"
 #
-# The result is a directory $2 which includes all files that should be in an archive release, notably tarballs and a
-# release version list in JSON format. Platforms which fail for any reason are not included in the JSON list.
+# The result is a directory $2 which includes all release artifacts that should be published.
+# Notably, these are tarballs and a release version list in JSON format. Platforms which fail for
+# any reason are not included in the JSON list.
 #
-# This depends on a shell script specific to the source repository in the current working directory. This produces
-# $name-$version-$os-$arch.tar.xz on success and failures are ignored. The $name is the basename of $1
+# IMPORTANT: "_debug" is not used when looking up the release https://github.com/$1/releases/tag/$2
+# Ex. If $1=envoyproxy/envoy $2=v1.18.3_debug, the source release is...
+# https://github.com/envoyproxy/envoy/releases/tag/v1.18.3 not
+# https://github.com/envoyproxy/envoy/releases/tag/v1.18.3_debut not
 #
-# For example, if $1=envoyproxy/envoy, this executes `./tar_envoy_release.sh $2 $os $arch $3`.
+# The "_debug" suffix is only used to allow the tar script to separate debug files from production.
 #
-# NOTE: $2 is stripped of "_debug" when looking up the source release https://github.com/$1/releases/tag/$2
-# For example, if $1=envoyproxy/envoy $2=v1.18.3_debug the source release is https://github.com/envoyproxy/envoy/releases/tag/v1.18.3
-# The "_debug" suffix allows the tar script to separate huge debug files from production ones.
+# This runs a tar script for each OS and architecture to create $name-$version-$os-$arch.tar.xz
+# The tar script name includes the basename of $1. If $1=envoyproxy/envoy: tar_envoy_artifact.sh
+# The arguments passed to the tar script are: $version $os $arch $op
+# This resulting tarball must include at least a working binary. Failures are ignored
+#
+# Notes:
+#  * The resulting tarball is "tar.xz" not "tar.gz" as the former is significantly smaller.
 
 # Verify args
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}
@@ -54,8 +61,10 @@ curl --version >/dev/null
 sha256sum --version >/dev/null
 jq --version >/dev/null
 
-tarScript="./tar_${name}_release.sh"
-[ -x "${tarScript}" ] || exit 1
+tarScript="$(dirname "$0")/tar_${name}_artifact.sh"
+if [ ! -x "${tarScript}" ]; then
+   echo >&2 "tarScript ${tarScript} must be executable" && exit 1
+fi
 
 # Setup defaults that make archival consistent between runs
 export TZ=UTC
@@ -71,7 +80,7 @@ for os in darwin linux windows; do
   for arch in amd64 arm64; do
     # permit a version to fail rather than duplicating maintenance here and in archive_release.sh
     set +e
-    ./"${tarScript}" "${version}" "${os}" "${arch}" "${op}"
+    "${tarScript}" "${version}" "${os}" "${arch}" "${op}"
     rc=$?
     set -e
     [ "${op}" = 'check' ] || [ "${rc}" != '0' ] && continue
