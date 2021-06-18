@@ -1,9 +1,13 @@
 .idea
-# any version folders
+# any version directories
 /v*
 
 # generated at build time
-public/envoy-versions.json
+public/envoy-versions*.json
 .netlify
 
 bin/getenvoy
+
+node_modules/
+package-lock.json
+package.json

@@ -5,8 +5,11 @@
 name: "release"
 
 on:
-  push:
-    tags: 'v[0-9]+.[0-9]+.[0-9]+**'  # Ex. v1.18.3
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version of the release. Ex v1.18.3 or v1.18.3_debug'
+        required: true
 
 jobs:
   archive:
@@ -15,14 +18,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Get the release tag name
-        run: echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
       - name: Archive Envoy Release
-        run: ./bin/archive_release_version.sh envoyproxy/envoy ${{ env.TAG }}
+        run: ./bin/archive_release_version.sh envoyproxy/envoy ${{ github.event.inputs.version }}"
       - name: Upload GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "${{ env.TAG }}/*"
+          artifacts: "${{ github.event.inputs.version }}/*"
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install netlify-cli  # don't use the GHA as it succeeds on failure

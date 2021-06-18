@@ -14,27 +14,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This archives official Envoy® releases into tarballs until https://github.com/envoyproxy/envoy/issues/16830
-# The tarball contains exactly the same binary as what users would have, if they used Docker or Homebrew
-# instructions from here: https://www.envoyproxy.io/docs/envoy/latest/start/install
+# This is an Envoy® plug-in to archive_release_version.sh and called in a loop for each OS and
+# architecture for a given version. The result is a tarball including the `envoy` binary.
 #
-# Hence, "official" is currently defined by the following sources:
-#  * For Linux and Windows, artifacts published by Envoy's Azure Pipelines used to create their Docker images
-#    * Public artifacts delete after a year, so when they aren't visible, we try Docker envoyproxy/envoy:${version}
-#  * For MacOS, tarballs used implicitly by `brew install envoy`
+#  * The first parameter ($1) is the release version. Ex. v1.18.3 or v1.18.3_debug.
+#    * The "_debug" suffix toggles if the binary is stripped and if debug symbols are included.
+#  * The second parameter ($2) is the operating system: darwin, linux or windows
+#  * The third parameter ($3) is the architecture: amd64 or arm64
+#  * The fourth parameter ($4) is optional, either "archive" (default) or "check"
+#    * Check exits successfully if the download URL or Docker image are available.
 #
-# Specifically, the result is envoy-$version-$os-$arch.tar.xz
-#  Ex. envoy-v1.18.3-linux-amd64.xz contains only envoy-v1.18.3-linux-amd64/bin/envoy
-#  Ex. envoy-v1.18.3-windows-amd64.tar.xz contains only envoy-v1.18.3-windows-amd64/bin/envoy.exe
+# The result is envoy-$version-$os-$arch.tar.xz which contents appropriate per platform
+#  Ex. envoy-v1.18.3-linux-amd64.xz contains envoy-v1.18.3-linux-amd64/bin/envoy
+#  Ex. envoy-v1.18.3-windows-amd64.tar.xz contains envoy-v1.18.3-windows-amd64/bin/envoy.exe
 #
 # Notes:
-#  * the resulting tarball is "tar.xz" not "tar.gz" as the former is significantly less storage and bandwidth.
-#  * the official envoy binary is the non-debug (dbg) build (stripped and missing envoy.dwp)
-#  * darwin binaries aren't derived from Envoy's release pipeline, rather by [Brew Test Bot](https://docs.brew.sh/Bottles#bottle-dsl-domain-specific-language).
-#
-# In other words, operating systems are handled differently. Linux and Windows releases upload as artifacts in the Envoy
-# Azure Pipeline where MacOS uploads into Homebrew's registry. These are external, so drift problems can occur.
-# Hopefully, https://github.com/envoyproxy/envoy/issues/16830 can simplify future archiving.
+#  * If an Azure Pipeline build is known it is used, otherwise Docker is.
+#  * Darwin is a special-case and extracted from HomeBrew
+#  * This script may be simplified when https://github.com/envoyproxy/envoy/issues/16830 completes
 #
 # -----
 # Envoy® is a registered trademark of The Linux Foundation in the United States and/or other countries
@@ -48,7 +45,7 @@ which gtar >/dev/null && tar=gtar
 ${tar} --version | grep 'GNU tar' >/dev/null
 
 # Verify args
-version=${1?version is required. Ex v1.18.3}
+version=${1?version is required. Ex v1.18.3 or v1.18.3_debug}
 os=${2?os is required. Ex darwin linux or windows}
 arch=${3:-amd64}
 op=${4:-archive}
@@ -76,6 +73,8 @@ not_yet_version() {
   echo >&2 "version ${version} not yet supported on ${os}-${arch}" && exit 1
 }
 
+case ${version} in v[0-9]*[0-9]_debug) debug="1" ;; esac
+
 curl="curl -fsSL"
 untargz="${tar} --no-same-owner -xpzf"
 
@@ -100,18 +99,18 @@ linux | windows)
   # Search on https://dev.azure.com/cncf/envoy/_build?view=runs&keywordFilter=${version} and click the result
   # The `buildId` is the query parameter of the resulting web page
   case ${version} in
-  v1.18.3) buildId=75331 ;;
+  v1.18.3 | v1.18.3_debug) buildId=75331 ;;
   v1.18.2) ;; # buildId=72198 publishedArtifacts aren't visible
   v1.18.1) not_yet_version ;; # buildId=72179 publishedArtifacts aren't visible and no docker image!
   v1.18.0) not_yet_version ;; # buildId=72169 publishedArtifacts aren't visible and no docker image!
-  v1.17.3) buildId=75332 ;;
+  v1.17.3 | v1.17.3_debug) buildId=75332 ;;
   v1.17.2) ;; # buildId=72166 publishedArtifacts aren't visible
   v1.17.1) ;; # buildId=67489 publishedArtifacts aren't visible
-  v1.16.4) buildId=75333 ;;
+  v1.16.4 | v1.16.4_debug) buildId=75333 ;;
   v1.16.3) ;; # buildId=72165 publishedArtifacts aren't visible; requested tetratelabs/getenvoy#274
   v1.16.2) ;; # buildId=60159 publishedArtifacts aren't visible
-  v1.15.5) buildId=75334 ;;
-  v1.15.4) buildId=72164 ;;
+  v1.15.5 | v1.15.5_debug) buildId=75334 ;;
+  v1.15.4 | v1.15.4_debug) buildId=72164 ;;
   v1.15.3) ;; # buildId=60136 publishedArtifacts aren't visible
   v1.14.7) ;; # buildId=72163 publishedArtifacts aren't visible
   v1.14.6) ;; # buildId=60135 publishedArtifacts aren't visible
@@ -133,10 +132,18 @@ linux | windows)
       v1.1[2345]*) not_yet_arch ;;
       esac
     fi
-    # Fall back to Docker as Linux has these for a long time.
-    [ "${buildId:-}" = '' ] && dockerImage=envoyproxy/envoy:${version}
+
+    if [ "${buildId:-}" = '' ]; then
+      # Fall back to Docker as Linux has these for a long time.
+      if [ "${debug:-}" = '' ]; then
+        dockerImage=envoyproxy/envoy:${version}
+      else
+        dockerImage=envoyproxy/envoy-debug:$(echo "${version}" | sed 's/_debug//g')
+      fi
+    fi
   else # Windows was added in 1.16
     artifactName=windows.release
+    [ "${debug:-}" != '' ] && not_yet_version # windows.release doesn't include debug symbols
     case ${version} in v1.1[2345]*) not_yet_version ;; esac
     [ "$arch" != 'amd64' ] && not_yet_arch     # No one raised an issue in Envoy, yet.
     [ "${buildId:-}" = '' ] && not_yet_version # We can't fall back to Docker on Windows
@@ -173,8 +180,17 @@ fi
 mkdir -p "${version}/${dist}/bin"
 cd "${version}"
 if [ "${dockerImage:-}" != '' ]; then
+  # docker run -ti --rm --entrypoint /bin/sh --platform "${os}/${arch}" ${dockerImage} to debug if necessary
   containerid=$(docker create --platform "${os}/${arch}" "${dockerImage}") || exit 1
-  docker cp "$containerid:/usr/local/bin/envoy" "${dist}/bin"/
+  sources="/usr/local/bin/envoy /usr/local/bin/su-exec"
+  [ "${debug:-}" != '' ] && sources="${sources} /usr/local/bin/envoy.dwp"
+  for source in ${sources}; do
+    file=$(basename "${source}")
+    docker cp "$containerid:${source}" "${dist}/bin/${file}"
+    if [ ! -f "${dist}/bin/${file}" ]; then
+      echo >&2 "file ${source} missing from platform ${os}/${arch} of ${dockerImage}" && exit 1
+    fi
+  done
   docker rm "$containerid"
 elif [ "${os}" = 'darwin' ]; then # get it from homebrew
   # strip the v off the tag name more shell portable than ${version:1}
@@ -188,11 +204,31 @@ else # get it from Envoy's Azure Pipeline published artifacts.
   ${curl} "${downloadURL}" >"${zip}"
   unzip -qq -o "${zip}" && rm "${zip}"
   if [ "${os}" = 'linux' ]; then
-    binDir=build_release_stripped
-    (cd "${artifactName}" && ${untargz} envoy_binary.tar.gz ${binDir})
-    cp -p "${artifactName}/${binDir}/envoy" "${dist}/bin/"
+    if [ "${debug:-}" = '' ]; then
+      sources="build_release_stripped/envoy build_release/su-exec"
+    else
+      sources="build_release/envoy build_release/envoy.dwp build_release/su-exec"
+    fi
+
+    # shellcheck disable=SC2086
+    (cd "${artifactName}" && ${untargz} envoy_binary.tar.gz ${sources})
+
+    for source in ${sources}; do
+      file=$(basename "${source}")
+      cp -p "${artifactName}/${source}" "${dist}/bin/${file}"
+
+      if [ ! -f "${dist}/bin/${file}" ]; then
+        echo >&2 "file ${source} missing from envoy_binary.tar.gz in ${downloadURL}" && exit 1
+      fi
+    done
   else # windows
-    cp -p "${artifactName}/source/exe/envoy.exe" "${dist}/bin/"
+    source="source/exe/envoy.exe"
+    file=$(basename "${source}")
+    cp -p "${artifactName}/${source}" "${dist}/bin/${file}"
+
+    if [ ! -f "${dist}/bin/${file}" ]; then
+      echo >&2 "file ${source} missing from ${downloadURL}" && exit 1
+    fi
   fi
   rm -rf "${artifactName}"
 fi
