@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version of the release. Ex v1.18.3 or v1.18.3_debug'
+        description: Version of the release. Ex v1.18.3 or v1.18.3_debug
         required: true
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Archive Envoy Release
-        run: ./bin/archive_release_version.sh envoyproxy/envoy ${{ github.event.inputs.version }}"
+        run: ./bin/archive_release_version.sh envoyproxy/envoy ${{ github.event.inputs.version }}
       - name: Upload GitHub Release
         uses: ncipollo/release-action@v1
         with:
