@@ -24,6 +24,12 @@ curl="curl -fsSL"
 
 githubRepo="${1?-githubRepo required ex tetratelabs/archive-envoy}"
 downloadBaseURL="${2?-downloadBaseURL required ex https://archive.tetratelabs.io/envoy/download}"
+case "${3:-0}" in
+0) debugVersion='' ;;
+1) debugVersion='1' ;;
+*) echo >&2 "debugVersion, if present, should be '', '0', or '1'" && exit 1 ;;
+esac
+
 # This must match netlify.toml redirects
 redirectsTo="https://github.com/${githubRepo}/releases/download"
 
@@ -33,6 +39,10 @@ versions=$(${curl} -sSL "https://api.github.com/repos/${githubRepo}/releases?per
   jq -er ".|map(select(.prerelease == false and .draft == false))|.[]|.name" | sort -n) || exit 1
 
 for version in ${versions}; do
+  # Exclusively handle debug
+  case ${version} in v[0-9]*[0-9]_debug) nextDebugVersion=1 ;; esac
+  [ "${debugVersion:-}" != "${nextDebugVersion:-}" ] && continue
+
   versionsUrl="${redirectsTo}/${version}/envoy-${version}.json"
   nextReleaseVersion=$(${curl} "${versionsUrl}" | sed "s~${redirectsTo}~${downloadBaseURL}~g") || exit 1
   # merge the pending releaseVersions json to include the next one

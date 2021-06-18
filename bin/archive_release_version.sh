@@ -19,9 +19,20 @@
 # Verify args
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}
 name=$(basename "${sourceGitHubRepository}") || exit 1
-version=${2?version is required. Ex v1.18.3}
-archiveBaseUrl="https://github.com/${GITHUB_REPOSITORY}/releases/download/$version"
+case "${2:-}" in
+v[0-9]*[0-9]_debug)
+  version=$2
+  sourceVersion=$(echo "${2}" | sed 's/_debug//g')
+  ;;
+v[0-9]*[0-9])
+  version=$2
+  sourceVersion=$2
+  ;;
+*) echo >&2 "version is required. Ex v1.18.3 or v1.18.3_debug" && exit 1 ;;
+esac
 op=${3:-archive}
+
+archiveBaseUrl="https://github.com/${GITHUB_REPOSITORY:-tetratelabs/archive-envoy}/releases/download/${version}"
 
 # Ensure we have tools we need installed
 curl --version >/dev/null
@@ -35,11 +46,11 @@ releaseScript="./archive_${name}_release.sh"
 export TZ=UTC
 # ex. "2021-05-11T19:15:27Z" ->  "2021-05-11"
 RELEASE_DATE=$(curl -sSL "https://api.github.com/repos/${sourceGitHubRepository}/releases"'?per_page=100' |
-  jq -er ".|map(select(.prerelease == false and .draft == false and .name ==\"$version\"))|first|.published_at" | cut -c1-10) || exit 1
+  jq -er ".|map(select(.prerelease == false and .draft == false and .name ==\"${sourceVersion}\"))|first|.published_at" | cut -c1-10) || exit 1
 export RELEASE_DATE
 
 echo "archiving ${sourceGitHubRepository} ${version} released on ${RELEASE_DATE}"
-# archive all dists for the version, generating the release-versions.json format incrementally
+# archive all dists for the version, generating https://archive.tetratelabs.io/release-versions-schema.json incrementally
 releaseVersions="{}"
 for os in darwin linux windows; do
   for arch in amd64 arm64; do
