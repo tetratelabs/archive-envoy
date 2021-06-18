@@ -14,27 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This archives official Envoy® releases into tarballs until https://github.com/envoyproxy/envoy/issues/16830
-# The tarball contains exactly the same binary as what users would have, if they used Docker or Homebrew
-# instructions from here: https://www.envoyproxy.io/docs/envoy/latest/start/install
+# This creates a directory archiving an Envoy® release in tar.xz format.
+#  * The first parameter ($1) is the release version. Ex. v1.18.3 or v1.18.3_debug.
+#    * The "_debug" suffix toggles if the binary is stripped or not, and if debug symbols are included.
+#  * The second parameter ($2) is the operating system: darwin, linux or windows
+#  * The third parameter ($3) is the architecture: amd64 or arm64
+#  * The fourth parameter ($4) is optional, either "archive" (default) or "check"
+#    * Check exits successfully if the download URL or Docker image are available.
 #
-# Hence, "official" is currently defined by the following sources:
-#  * For Linux and Windows, artifacts published by Envoy's Azure Pipelines used to create their Docker images
-#    * Public artifacts delete after a year, so when they aren't visible, we try Docker envoyproxy/envoy:${version}
-#  * For MacOS, tarballs used implicitly by `brew install envoy`
-#
-# Specifically, the result is envoy-$version-$os-$arch.tar.xz
-#  Ex. envoy-v1.18.3-linux-amd64.xz contains only envoy-v1.18.3-linux-amd64/bin/envoy
-#  Ex. envoy-v1.18.3-windows-amd64.tar.xz contains only envoy-v1.18.3-windows-amd64/bin/envoy.exe
+# The result is a file envoy-$version-$os-$arch.tar.xz which contents appropriate per platform
+#  Ex. envoy-v1.18.3-linux-amd64.xz contains envoy-v1.18.3-linux-amd64/bin/envoy
+#  Ex. envoy-v1.18.3-windows-amd64.tar.xz contains envoy-v1.18.3-windows-amd64/bin/envoy.exe
 #
 # Notes:
-#  * the resulting tarball is "tar.xz" not "tar.gz" as the former is significantly less storage and bandwidth.
-#  * the official envoy binary is the non_debug (dbg) build (stripped and missing envoy.dwp)
-#  * darwin binaries aren't derived from Envoy's release pipeline, rather by [Brew Test Bot](https://docs.brew.sh/Bottles#bottle-dsl-domain-specific-language).
-#
-# In other words, operating systems are handled differently. Linux and Windows releases upload as artifacts in the Envoy
-# Azure Pipeline where MacOS uploads into Homebrew's registry. These are external, so drift problems can occur.
-# Hopefully, https://github.com/envoyproxy/envoy/issues/16830 can simplify future archiving.
+#  * The resulting tarball is "tar.xz" not "tar.gz" as the former is significantly less storage and bandwidth.
+#  * If an Azure Pipeline build is known it is used, otherwise Docker is.
+#  * Darwin is a special-case and extracted from HomeBrew
+#  * This script may be simplified when  https://github.com/envoyproxy/envoy/issues/16830 completes
 #
 # -----
 # Envoy® is a registered trademark of The Linux Foundation in the United States and/or other countries

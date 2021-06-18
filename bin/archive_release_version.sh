@@ -14,7 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This creates a directory archiving a GitHub release including all available platforms
+# This creates a directory archiving a GitHub release including all available platforms.
+#  * The first parameter ($1) is the source GitHub repository to archive. Ex envoyproxy/envoy
+#  * The second parameter ($2) is optional, either "archive" (default) or "check"
+#
+# The result is a directory $2 which includes all files that should be in an archive release, notably tarballs and a
+# release version list in JSON format. Platforms which fail for any reason are not included in the JSON list.
+#
+# This depends on a shell script specific to the source repository in the current working directory. This produces
+# $name-$version-$os-$arch.tar.xz on success and failures are ignored. The $name is the basename of $1
+#
+# For example, if $1=envoyproxy/envoy, this executes `./tar_envoy_release.sh $version $os $arch $2` for each
+# release $version found in https://api.github.com/repos/$1/releases
 
 # Verify args
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}
@@ -39,8 +50,8 @@ curl --version >/dev/null
 sha256sum --version >/dev/null
 jq --version >/dev/null
 
-releaseScript="./archive_${name}_release.sh"
-[ -x "${releaseScript}" ] || exit 1
+tarScript="./tar_${name}_release.sh"
+[ -x "${tarScript}" ] || exit 1
 
 # Setup defaults that make archival consistent between runs
 export TZ=UTC
@@ -54,10 +65,9 @@ echo "archiving ${sourceGitHubRepository} ${version} released on ${RELEASE_DATE}
 releaseVersions="{}"
 for os in darwin linux windows; do
   for arch in amd64 arm64; do
-
     # permit a version to fail rather than duplicating maintenance here and in archive_release.sh
     set +e
-    ./"${releaseScript}" "${version}" "${os}" "${arch}" "${op}"
+    ./"${tarScript}" "${version}" "${os}" "${arch}" "${op}"
     rc=$?
     set -e
     [ "${op}" = 'check' ] || [ "${rc}" != '0' ] && continue
