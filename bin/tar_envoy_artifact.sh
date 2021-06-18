@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # This is an Envoy® plug-in to archive_release_version.sh and called in a loop for each OS and
-# architecture for a given version. The result is a tarball including the Envoy® binary.
+# architecture for a given version. The result is a tarball including the `envoy` binary.
 #
 #  * The first parameter ($1) is the release version. Ex. v1.18.3 or v1.18.3_debug.
 #    * The "_debug" suffix toggles if the binary is stripped and if debug symbols are included.
