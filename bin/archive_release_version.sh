@@ -30,8 +30,8 @@
 #
 # The "_debug" suffix is only used to allow the tar script to separate debug files from production.
 #
-# This runs a tar script for each OS and architecture to create $name-$version-$os-$arch.tar.xz
-# The tar script name includes the basename of $1. If $1=envoyproxy/envoy: tar_envoy_artifact.sh
+# This runs a car script for each OS and architecture to create $name-$version-$os-$arch.tar.xz
+# The car script name includes the basename of $1. If $1=envoyproxy/envoy: car_envoy.sh
 # The arguments passed to the tar script are: $version $os $arch $op
 # This resulting tarball must include at least a working binary. Failures are ignored
 #
@@ -60,11 +60,21 @@ archiveBaseUrl="https://github.com/${GITHUB_REPOSITORY:-tetratelabs/archive-envo
 curl --version >/dev/null
 sha256sum --version >/dev/null
 jq --version >/dev/null
+tar=tar
+# we need GNU tar. On Darwin, the system default is not gtar. `brew install gtar` if that's you!
+which gtar >/dev/null && tar=gtar
+${tar} --version | grep 'GNU tar' >/dev/null
 
-tarScript="$(dirname "$0")/tar_${name}_artifact.sh"
-if [ ! -x "${tarScript}" ]; then
-   echo >&2 "tarScript ${tarScript} must be executable" && exit 1
+carScript="$(dirname "$0")/car_${name}.sh"
+if [ ! -x "${carScript}" ]; then
+  echo >&2 "carScript ${carScript} must be executable" && exit 1
 fi
+
+case ${op} in
+check) carMode=list ;;
+archive) carMode=extract ;;
+*) echo >&2 "invalid op ${op}" && exit 1 ;;
+esac
 
 # Setup defaults that make archival consistent between runs
 export TZ=UTC
@@ -72,26 +82,41 @@ export TZ=UTC
 RELEASE_DATE=$(curl -sSL "https://api.github.com/repos/${sourceGitHubRepository}/releases"'?per_page=100' |
   jq -er ".|map(select(.prerelease == false and .draft == false and .name ==\"${sourceVersion}\"))|first|.published_at" | cut -c1-10) || exit 1
 export RELEASE_DATE
+tarxz="${tar} --numeric-owner --owner 65534 --group 65534 --mtime ${RELEASE_DATE?-ex. 2021-05-11} -cpJf"
 
 echo "archiving ${sourceGitHubRepository} ${version} released on ${RELEASE_DATE}"
 # archive all dists for the version, generating https://archive.tetratelabs.io/release-versions-schema.json incrementally
 releaseVersions="{}"
 for os in darwin linux windows; do
   for arch in amd64 arm64; do
+    dist="${version}/envoy-${version}-${os}-${arch}"
+    echo "using dist: ${dist}"
     # permit a version to fail rather than duplicating maintenance here and in archive_release.sh
     set +e
-    "${tarScript}" "${version}" "${os}" "${arch}" "${op}"
+    "${carScript}" "${version}" "${os}" "${arch}" "${carMode}" "${dist}"
     rc=$?
     set -e
     [ "${op}" = 'check' ] || [ "${rc}" != '0' ] && continue
 
-    f="${name}-${version}-${os}-${arch}.tar.xz"
-    s=$(sha256sum "${version}/${f}" | awk '{print $1}') || exit 1
+    if ! [ -d "${dist}" ]; then
+      echo >&2 "expected to extract files for ${os}/${arch}" && exit 1
+      exit 1
+    fi
+
+    archive="${dist}.tar.xz"
+    echo "creating ${archive}"
+    ${tarxz} "${archive}" "${dist}/"
+    rm -rf "${dist}"
+    s=$(sha256sum "${archive}" | awk '{print $1}') || exit 1
+
+    # URLs will include only the basename of the archive
+    archive=$(basename "${archive}")
+
     # strip the v off the tag name more shell portable than ${version:1}
     v=$(echo "${version}" | cut -c2-100)
     # use printf because jq doesn't support parameterizing the key names, only the key values
     nextReleaseVersion=$(printf '{"latestVersion": "%s", "versions": { "%s": {"releaseDate": "%s", "tarballs": {"%s": "%s"}}}, "sha256sums": {"%s": "%s"}}' \
-      "$v" "$v" "${RELEASE_DATE}" "${os}/${arch}" "${archiveBaseUrl}/${f}" "${f}" "$s")
+      "$v" "$v" "${RELEASE_DATE}" "${os}/${arch}" "${archiveBaseUrl}/${archive}" "${archive}" "$s")
     # merge the pending releaseVersions json to include the next dist
     releaseVersions=$(echo "${releaseVersions}" "${nextReleaseVersion}" | jq -Sse '.[0] * .[1]')
   done
