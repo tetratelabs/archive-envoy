@@ -21,8 +21,9 @@
 #    * The "_debug" suffix toggles if the binary is stripped and if debug symbols are included.
 #  * The second parameter ($2) is the operating system: darwin, linux or windows
 #  * The third parameter ($3) is the architecture: amd64 or arm64
-#  * The fourth parameter ($4) is optional, either "extract" (default) or "list"
+#  * The fourth parameter ($4) is the `car` mode: extract or list
 #    * list exits successfully if the expected files are available in OCI layers
+#  * The fifth parameter ($5) is the directory to extract files into
 #
 # The result is envoy-$version-$os-$arch which contents appropriate per platform
 #  Ex. envoy-v1.18.3-linux-amd64/bin/envoy
