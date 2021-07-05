@@ -126,5 +126,5 @@ done
 releaseVersions=$(echo "${releaseVersions}" | jq '{latestVersion: .latestVersion, versions: .versions, sha256sums: .sha256sums}')
 # Write the versions file and reset file date as if they were published at the same time
 echo "${releaseVersions}" >"${version}/${name}-${version}.json"
-touchDate=$(echo "${RELEASE_DATE}"|sed 's/-//g')
+touchDate=$(echo "${RELEASE_DATE}"|sed 's/-//g')0000
 find "${version}" -exec touch -t "${touchDate}" {} \;
