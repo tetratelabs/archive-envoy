@@ -23,7 +23,7 @@ jobs:
         with:
           go-version: 1.16.5
       - name: Install Car
-        run: go install github.com/tetratelabs/car@extract
+        run: go install github.com/tetratelabs/car@master
       - name: Archive Envoy Release
         run: ./bin/archive_release_version.sh envoyproxy/envoy "${{ github.event.inputs.version }}"
       - name: Upload GitHub Release
