@@ -35,12 +35,12 @@ redirectsTo="https://github.com/${githubRepo}/releases/download"
 
 # archive all dists for the version, generating the envoy-versions.json format incrementally
 releaseVersions="{}"
-versions=$(${curl} -sSL "https://api.github.com/repos/${githubRepo}/releases?per_page=100" |
+versions=$(${curl} "https://api.github.com/repos/${githubRepo}/releases?per_page=100" |
   jq -er ".|map(select(.prerelease == false and .draft == false))|.[]|.name" | sort -n) || exit 1
 
 for version in ${versions}; do
   # Exclusively handle debug
-  case ${version} in v[0-9]*[0-9]_debug) nextDebugVersion=1 ;; esac
+  case ${version} in v[0-9]*[0-9]_debug) nextDebugVersion=1 ;; *) unset nextDebugVersion;; esac
   [ "${debugVersion:-}" != "${nextDebugVersion:-}" ] && continue
 
   versionsUrl="${redirectsTo}/${version}/envoy-${version}.json"

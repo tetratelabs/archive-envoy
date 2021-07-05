@@ -79,7 +79,7 @@ esac
 # Setup defaults that make archival consistent between runs
 export TZ=UTC
 # ex. "2021-05-11T19:15:27Z" ->  "2021-05-11"
-RELEASE_DATE=$(curl -sSL "https://api.github.com/repos/${sourceGitHubRepository}/releases"'?per_page=100' |
+RELEASE_DATE=$(curl -fsSL "https://api.github.com/repos/${sourceGitHubRepository}/releases"'?per_page=100' |
   jq -er ".|map(select(.prerelease == false and .draft == false and .name ==\"${sourceVersion}\"))|first|.published_at" | cut -c1-10) || exit 1
 export RELEASE_DATE
 tarxz="${tar} --numeric-owner --owner 65534 --group 65534 --mtime ${RELEASE_DATE?-ex. 2021-05-11} -cpJf"
