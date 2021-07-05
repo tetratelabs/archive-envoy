@@ -89,28 +89,25 @@ echo "archiving ${sourceGitHubRepository} ${version} released on ${RELEASE_DATE}
 releaseVersions="{}"
 for os in darwin linux windows; do
   for arch in amd64 arm64; do
-    dist="${version}/envoy-${version}-${os}-${arch}"
+    dist="envoy-${version}-${os}-${arch}"
     echo "using dist: ${dist}"
     # permit a version to fail rather than duplicating maintenance here and in archive_release.sh
     set +e
-    "${carScript}" "${version}" "${os}" "${arch}" "${carMode}" "${dist}"
+    "${carScript}" "${version}" "${os}" "${arch}" "${carMode}" "${version}/${dist}"
     rc=$?
     set -e
     [ "${op}" = 'check' ] || [ "${rc}" != '0' ] && continue
 
-    if ! [ -d "${dist}" ]; then
+    if ! [ -d "${version}/${dist}" ]; then
       echo >&2 "expected to extract files for ${os}/${arch}" && exit 1
       exit 1
     fi
 
     archive="${dist}.tar.xz"
     echo "creating ${archive}"
-    ${tarxz} "${archive}" "${dist}/"
-    rm -rf "${dist}"
-    s=$(sha256sum "${archive}" | awk '{print $1}') || exit 1
-
-    # URLs will include only the basename of the archive
-    archive=$(basename "${archive}")
+    (cd "${version}" && ${tarxz} "${archive}" "${dist}")
+    rm -rf "${version}/${dist}"
+    s=$(sha256sum "${version}/${archive}" | awk '{print $1}') || exit 1
 
     # strip the v off the tag name more shell portable than ${version:1}
     v=$(echo "${version}" | cut -c2-100)
