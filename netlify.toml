@@ -20,3 +20,9 @@ from = "/download/*"
 to = "https://github.com/tetratelabs/archive-envoy/releases/download/:splat"
 force = true
 status = 302
+
+# Redirect anyone browsing to a basic HTML summary
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 302
