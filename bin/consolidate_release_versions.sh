@@ -50,5 +50,4 @@ for version in ${versions}; do
 done
 
 # reorder top-level keys so that versions appear before sha256sums
-# temporarily hard-code v1.18.3 until 1.19.0 is fixed https://github.com/Homebrew/homebrew-core/pull/81490
-echo "${releaseVersions}" | jq '{latestVersion: "1.18.3", versions: .versions, sha256sums: .sha256sums}'
+echo "${releaseVersions}" | jq '{latestVersion: .latestVersion, versions: .versions, sha256sums: .sha256sums}'
