@@ -41,5 +41,6 @@ jobs:
         with:
           formula-name: ${{ github.event.inputs.formula }}
           tag-name: ${{ github.event.inputs.tag-name }}
+          download-url: https://github.com/envoyproxy/envoy/archive/${{ github.event.inputs.tag-name }}.tar.gz
         env:  # See env section for notes on PACKAGE_BUMP_TOKEN
           COMMITTER_TOKEN: ${{ secrets.PACKAGE_BUMP_TOKEN }}
