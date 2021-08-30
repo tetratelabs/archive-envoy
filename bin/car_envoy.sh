@@ -71,15 +71,15 @@ darwin) # https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy.rb
   # curl -fsSL -H 'Authorization: Bearer QQ==' 'https://ghcr.io/v2/homebrew/core/envoy/tags/list?n=10
   # curl -fsSL -H 'Authorization: Bearer QQ==' 'https://ghcr.io/v2/homebrew/core/envoy/1.17/tags/list?n=10
   case ${v} in
-  1.18.3)
-    reference=ghcr.io/homebrew/core/envoy:1.18.3-1
-    ${car} --strip-components 2 -qf "${reference}" envoy/${v}/bin/envoy
-    ;;
   1.17.*)
     reference=ghcr.io/homebrew/core/envoy/1.17:${v}
     ${car} --strip-components 2 -qf "${reference}" 'envoy@1.17'/${v}/bin/envoy
     ;;
-  *) # current version
+  1.18.*)
+    reference=ghcr.io/homebrew/core/envoy/1.18:${v}
+    ${car} --strip-components 2 -qf "${reference}" 'envoy@1.18'/${v}/bin/envoy
+    ;;
+  *) # current version 1.19
     reference=ghcr.io/homebrew/core/envoy:${v}
     ${car} --strip-components 2 -qf "${reference}" envoy/${v}/bin/envoy
     ;;
