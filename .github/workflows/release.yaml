@@ -13,30 +13,32 @@ on:
 
 jobs:
   archive:
-    name: Archive Envoy® Release
-    runs-on: ubuntu-latest
+    name: "Archive Envoy® Release"
+    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
     steps:
-      - name: Checkout
+      - name: "Checkout"
         uses: actions/checkout@v2
-      - name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.16.5
-      - name: Install Car
-        run: go install github.com/tetratelabs/car@master
-      - name: Archive Envoy Release
+
+      - name: "Install car and netlify-cli"
+        run: |
+          car_version=1.0.0
+          car_url=https://github.com/tetratelabs/car/releases/download/v${car_version}/car_${car_version}_linux_amd64.tar.gz
+          curl -sSL ${car_url} | tar -C /usr/local/bin -xzf -
+          npm install --save-dev netlify-cli
+
+      - name: "Archive Envoy Release"
         run: ./bin/archive_release_version.sh envoyproxy/envoy "${{ github.event.inputs.version }}"
-      - name: Upload GitHub Release
+
+      - name: "Upload GitHub Release"
         uses: ncipollo/release-action@v1
-        with:
+        with:  # TODO: This would be easier to troubleshoot if used `gh` commands like func-e does.
           artifacts: "${{ github.event.inputs.version }}/*"
           allowUpdates: true
           tag: ${{ github.event.inputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install netlify-cli  # don't use the GHA as it succeeds on failure
-        run: npm install --save-dev netlify-cli
-      - name: Trigger Netlify deploy  # The above upload won't create a GHA trigger, so we make one directly
+
+      - name: "Trigger Netlify deploy"  # The above upload won't create a GHA trigger, so we make one directly
         run: ./node_modules/.bin/netlify deploy --message="deploy ${TAG}" --trigger --auth=${NETLIFY_AUTH_TOKEN} --site=${NETLIFY_SITE_ID}
-        env: # https://github.com/tetratelabs/archive-envoy/settings/secrets
+        env:  # https://github.com/tetratelabs/archive-envoy/settings/secrets
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}  # https://app.netlify.com/user/applications/personal
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}  # .netlify/state.json/siteId
