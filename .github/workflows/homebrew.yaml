@@ -28,7 +28,7 @@ env:
 jobs:
   homebrew:  # help ourselves until https://github.com/envoyproxy/envoy/issues/17500
     name: "Homebrew/homebrew-core"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
     steps:
       - name: "Configure git"
         run: |
