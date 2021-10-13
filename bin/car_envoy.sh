@@ -79,7 +79,9 @@ darwin) # https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy.rb
     reference=ghcr.io/homebrew/core/envoy/1.18:${v}
     ${car} --strip-components 2 -qf "${reference}" 'envoy@1.18'/${v}/bin/envoy
     ;;
-  *) # current version 1.19
+  1.19.*) # 1.19 was dropped by Homebrew/homebrew-core#86755
+    ;;
+  *) # current version is 1.20
     reference=ghcr.io/homebrew/core/envoy:${v}
     ${car} --strip-components 2 -qf "${reference}" envoy/${v}/bin/envoy
     ;;
