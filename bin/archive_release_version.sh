@@ -25,8 +25,8 @@
 #
 # IMPORTANT: "_debug" is not used when looking up the release https://github.com/$1/releases/tag/$2
 # Ex. If $1=envoyproxy/envoy $2=v1.18.3_debug, the source release is...
-# https://github.com/envoyproxy/envoy/releases/tag/v1.18.3 not
-# https://github.com/envoyproxy/envoy/releases/tag/v1.18.3_debut not
+# https://github.com/envoyproxy/envoy/releases/tag/v1.18.3_debug not
+# https://github.com/envoyproxy/envoy/releases/tag/v1.18.3
 #
 # The "_debug" suffix is only used to allow the tar script to separate debug files from production.
 #
@@ -67,7 +67,7 @@ ${tar} --version | grep 'GNU tar' >/dev/null
 
 carScript="$(dirname "$0")/car_${name}.sh"
 if [ ! -x "${carScript}" ]; then
-  echo >&2 "carScript ${carScript} must be executable" && exit 1
+  echo >&2 "car script ${carScript} must be executable" && exit 1
 fi
 
 case ${op} in
@@ -81,6 +81,10 @@ export TZ=UTC
 # ex. "2021-05-11T19:15:27Z" ->  "2021-05-11"
 RELEASE_DATE=$(curl -fsSL "https://api.github.com/repos/${sourceGitHubRepository}/releases"'?per_page=100' |
   jq -er ".|map(select(.prerelease == false and .draft == false and .name ==\"${sourceVersion}\"))|first|.published_at" | cut -c1-10) || exit 1
+if [ "${RELEASE_DATE}" = "null" ]; then
+  echo >&2 "version ${sourceVersion} has not yet been released" && exit 1
+fi
+
 export RELEASE_DATE
 tarxz="${tar} --numeric-owner --owner 65534 --group 65534 --mtime ${RELEASE_DATE?-ex. 2021-05-11} -cpJf"
 

@@ -33,7 +33,10 @@
 # Envoy® is a registered trademark of The Linux Foundation in the United States and/or other countries
 
 # Ensure we have tools we need installed
-car >/dev/null
+# Ensure we have tools we need installed
+curl --version >/dev/null
+jq --version >/dev/null
+curl="curl -fsSL"
 
 # Verify args
 version=${1?version is required. Ex v1.18.3 or v1.18.3_debug}
@@ -61,31 +64,42 @@ esac
 # Validate we have a version for the given platform. This is similarly inconsistent at the moment.
 case ${os} in
 darwin) # https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy.rb
-  # strip the v off the tag name more shell portable than ${version:1}
-  v=$(echo "${version}" | cut -c2-100)
+  # -c2 will strip the v off the tag name more shell portable than ${version:1}
+  minor_version=$(echo "${version}" | cut -c2-5)
+  patch_version=$(echo "${version}" | cut -c2-100)
 
-  # When a new minor version is released, you will have to make an '@' version for the previous minor.
-  # Otherwise, you won't see new patches. Ex https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy@1.17.rb
+  # Homebrew's primary formula should be the stable release, but sometimes it
+  # is behind. Once we understand this, we'll know if we should try a versioned
+  # formula or not.
+  if ! formula_json=$(${curl} https://formulae.brew.sh/api/formula/envoy.json 2>&-); then
+    echo >&2 "Could not download the Homebrew formula JSON" && exit 1
+  fi
+  stable_patch_version=$(echo "${formula_json}" | jq -er .versions.stable)
+  stable_minor_version=$(echo "${stable_patch_version}"| cut -c1-4)
 
-  # You can check here in case a version was re-released
-  # curl -fsSL -H 'Authorization: Bearer QQ==' 'https://ghcr.io/v2/homebrew/core/envoy/tags/list?n=10
-  # curl -fsSL -H 'Authorization: Bearer QQ==' 'https://ghcr.io/v2/homebrew/core/envoy/1.17/tags/list?n=10
-  case ${v} in
-  1.17.*)
-    reference=ghcr.io/homebrew/core/envoy/1.17:${v}
-    ${car} --strip-components 2 -qf "${reference}" 'envoy@1.17'/${v}/bin/envoy
-    ;;
-  1.18.*)
-    reference=ghcr.io/homebrew/core/envoy/1.18:${v}
-    ${car} --strip-components 2 -qf "${reference}" 'envoy@1.18'/${v}/bin/envoy
-    ;;
-  1.19.*) # 1.19 was dropped by Homebrew/homebrew-core#86755
-    ;;
-  *) # current version is 1.20
-    reference=ghcr.io/homebrew/core/envoy:${v}
-    ${car} --strip-components 2 -qf "${reference}" envoy/${v}/bin/envoy
-    ;;
-  esac
+  # Now, check to see if the version we want is the stable release. It could be
+  # a versioned formula and that will have a different HTTP path including the
+  # minor version.
+  tags_url=https://ghcr.io/v2/homebrew/core/envoy/tags/list
+  formula=envoy
+  path=envoy
+  if [ "${minor_version}" != "${stable_minor_version}" ]; then
+    tags_url=$(echo ${tags_url}| sed "s~envoy~envoy/${minor_version}~")
+    formula=envoy@${minor_version}
+    path=envoy/${minor_version}
+  fi
+
+  # The tags associated return could be mixed versions and also ambiguous. To
+  # ensure later steps, we have to both constrain to tags relating to this
+  # patch and also pick the latest (ex 1.19.1-1 not 1.19.1).
+  if tags_json=$(${curl} -H 'Authorization: Bearer QQ==' -H 'Accept: application/json' "${tags_url}?n=10" 2>&-); then
+    tag=$(echo "${tags_json}"|jq -er '.tags |.[]' | sed -n "/${patch_version}/p"|sort -n|tail -1)
+  fi
+  if [ -z "${tag}" ]; then
+    echo >&2 "version ${patch_version} is not available in Homebrew formula ${formula}" && exit 1
+  fi
+
+  ${car} --strip-components 2 -qf "ghcr.io/homebrew/core/${path}:${tag}" "${formula}/${patch_version}/bin/envoy"
   ;;
 linux)
   files="usr/local/bin/envoy"
