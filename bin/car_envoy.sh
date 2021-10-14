@@ -33,7 +33,7 @@
 # Envoy® is a registered trademark of The Linux Foundation in the United States and/or other countries
 
 # Ensure we have tools we need installed
-# Ensure we have tools we need installed
+car >/dev/null
 curl --version >/dev/null
 jq --version >/dev/null
 curl="curl -fsSL"
