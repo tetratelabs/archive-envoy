@@ -11,6 +11,10 @@ on:
         description: Version of the release. Ex v1.18.3 or v1.18.3_debug
         required: true
 
+defaults:
+  run:  # use bash for all operating systems unless overridden
+    shell: bash
+
 jobs:
   archive:
     name: "Archive Envoy® Release"
