@@ -34,6 +34,7 @@ jobs:
         with:  # TODO: This would be easier to troubleshoot if used `gh` commands like func-e does.
           artifacts: "${{ github.event.inputs.version }}/*"
           allowUpdates: true
+          omitBody: true
           tag: ${{ github.event.inputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -42,3 +43,34 @@ jobs:
         env:  # https://github.com/tetratelabs/archive-envoy/settings/secrets
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}  # https://app.netlify.com/user/applications/personal
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}  # .netlify/state.json/siteId
+
+  # Failures here happen after release, meaning they don't block a release. This is ok as we may be releasing Linux
+  # prior to OS/x being available, or releasing a debug version which is only available on Linux. The failures here are
+  # only to help us later identify issues, should some user concerns come up.
+  test:
+    name: "Test Envoy® Archive (${{ matrix.os }})"
+    needs: archive
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
+      matrix:
+        # Non-deprecated from https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+        # Note: We don't test arm64 on release as it is unlikely to fail and too much effort.
+        include:
+          - os: ubuntu-18.04
+          - os: ubuntu-20.04
+          - os: macos-10
+          - os: macos-11
+          - os: windows-2019
+          - os: windows-2022
+
+    steps:
+      - name: "Extract `envoy` binary from GitHub release assets"
+        run: |  # https://docs.github.com/en/actions/learn-github-actions/environment-variables
+          os=$(echo ${RUNNER_OS} | tr '[:upper:]' '[:lower:]' | sed 's/macos/darwin/g' )
+          gh release -R ${GITHUB_REPOSITORY} download "${{ github.event.inputs.version }}" -p "*-${os}-amd64.tar.xz"
+          tar --strip-components=2 -xpJf *.tar.xz && rm *.tar.xz
+        env:  # authenticate release downloads in case it is a draft (not public)
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: ./envoy --version
