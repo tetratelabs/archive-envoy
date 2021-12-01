@@ -19,12 +19,11 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Install car and netlify-cli"
+      - name: "Install car"
         run: |
           car_version=1.0.0
           car_url=https://github.com/tetratelabs/car/releases/download/v${car_version}/car_${car_version}_linux_amd64.tar.gz
           curl -sSL ${car_url} | tar -C /usr/local/bin -xzf -
-          npm install --save-dev netlify-cli
 
       - name: "Archive Envoy Release"
         run: ./bin/archive_release_version.sh envoyproxy/envoy "${{ github.event.inputs.version }}"
@@ -34,11 +33,35 @@ jobs:
         with:  # TODO: This would be easier to troubleshoot if used `gh` commands like func-e does.
           artifacts: "${{ github.event.inputs.version }}/*"
           allowUpdates: true
+          draft: true
+          omitBody: true
           tag: ${{ github.event.inputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Trigger Netlify deploy"  # The above upload won't create a GHA trigger, so we make one directly
-        run: ./node_modules/.bin/netlify deploy --message="deploy ${TAG}" --trigger --auth=${NETLIFY_AUTH_TOKEN} --site=${NETLIFY_SITE_ID}
-        env:  # https://github.com/tetratelabs/archive-envoy/settings/secrets
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}  # https://app.netlify.com/user/applications/personal
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}  # .netlify/state.json/siteId
+  test:
+    name: "Test Envoy® Archive (${{ matrix.os }})"
+    needs: archive
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
+      matrix:
+        # Non-deprecated from https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+        # Note: We don't test arm64 on release as it is unlikely to fail and too much effort.
+        include:
+          - os: ubuntu-18.04
+          - os: ubuntu-20.04
+          - os: macos-10
+          - os: macos-11
+          - os: windows-2019
+          - os: windows-2022
+
+    steps:
+      - name: "Extract `envoy` binary from GitHub release assets"
+        run: |  # https://docs.github.com/en/actions/learn-github-actions/environment-variables
+          os=$(echo ${RUNNER_OS} | tr '[:upper:]' '[:lower:]' | sed 's/macos/darwin/g' )
+          gh release -R ${GITHUB_REPOSITORY} download "${{ github.event.inputs.version }}" -p "*-${os}-amd64.tar.xz"
+          tar --strip-components=2 -xpJf *.tar.xz && rm *.tar.xz
+        env:  # authenticate release downloads in case it is a draft (not public)
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: ./envoy --version
