@@ -38,6 +38,7 @@ jobs:
         with:  # TODO: This would be easier to troubleshoot if used `gh` commands like func-e does.
           artifacts: "${{ github.event.inputs.version }}/*"
           allowUpdates: true
+          generateReleaseNotes: false
           omitBody: true
           tag: ${{ github.event.inputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
