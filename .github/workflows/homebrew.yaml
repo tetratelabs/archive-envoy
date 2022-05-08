@@ -37,7 +37,7 @@ jobs:
 
       - name: "Bump Formula PR"
         # Same as: brew bump-formula-pr --no-browse --no-audit --version "${tag-name}" "${formula}"
-        uses: mislav/bump-homebrew-formula-action@v1
+        uses: mislav/bump-homebrew-formula-action@v2
         with:
           formula-name: ${{ github.event.inputs.formula }}
           tag-name: ${{ github.event.inputs.tag-name }}
