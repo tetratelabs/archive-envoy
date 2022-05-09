@@ -110,6 +110,8 @@ linux)
     reference=envoyproxy/envoy:${version}
   fi
 
+  # Don't use --created-by-pattern because Envoy 1.22.0+ changed the image layer containing the binary.
+  # Note: Unlike windows, layers preceding the Envoy binary are small, so scanning through is OK.
   ${car} --strip-components 2 -qf "${reference}" ${files}
   ;;
 windows)
