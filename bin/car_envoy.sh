@@ -52,12 +52,11 @@ if [ "${debug:-}" = '1' ] && [ "${os}" != 'linux' ]; then
   echo >&2 "debug not yet supported on ${os}" && exit 1
 fi
 
-car_base="car --platform ${platform}"
 case ${mode} in
-list) car="${car_base} -t" ;;
+list) car="car -t --platform ${platform}" ;;
 extract)
   [ "${os}" = 'windows' ] && directory=${directory}/bin
-  car="${car_base} -x -C ${directory}"
+  car="car -x --platform ${platform} -C ${directory}"
   ;;
 *) echo >&2 "invalid mode ${mode}" && exit 1 ;;
 esac
@@ -103,8 +102,7 @@ darwin) # https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy.rb
   ${car} --strip-components 2 -qf "ghcr.io/homebrew/core/${path}:${tag}" "${formula}/${patch_version}/bin/envoy"
   ;;
 linux)
-  envoy_binary="usr/local/bin/envoy"
-  files="$envoy_binary"
+  files="usr/local/bin/envoy"
   if [ "${debug:-}" = '1' ]; then
     reference=envoyproxy/envoy-debug:$(echo "${version}" | sed 's/_debug//g')
     files="$files usr/local/bin/envoy.dwp"
@@ -112,12 +110,7 @@ linux)
     reference=envoyproxy/envoy:${version}
   fi
 
-  # List all files and layers. Look for $envoy_binary. Capture last 5 lines before $envoy_binary and find
-  # the last "CreatedBy" phase. From the line containing "CreatedBy" get the command used to add the layer.
-  # That command will be used as $pattern for extract command.
-  pattern=$(${car_base} -t -vv --reference "${reference}" | grep -B 5 "${envoy_binary}" | grep "CreatedBy" | tail -1 | awk '{print $2 " " $3}') 
-
-  ${car} --created-by-pattern "${pattern}" -qf "${reference}" --strip-components 2 ${files}
+  ${car} --strip-components 2 -qf "${reference}" ${files}
   ;;
 windows)
   reference=envoyproxy/envoy-windows:${version}
