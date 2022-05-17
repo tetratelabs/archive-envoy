@@ -92,7 +92,7 @@ darwin) # https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy.rb
   # The tags for this formula could be mixed versions and also ambiguous. This
   # constrained to the patch we are looking for and also ensures we get the
   # last publication of it (ex 1.19.1-1 not 1.19.1).
-  if tags_json=$(${curl} -H 'Authorization: Bearer QQ==' -H 'Accept: application/json' "${tags_url}?n=10" 2>&-); then
+  if tags_json=$(${curl} -H 'Authorization: Bearer QQ==' -H 'Accept: application/json' "${tags_url}" 2>&-); then
     tag=$(echo "${tags_json}"|jq -er '.tags |.[]' | sed -n "/${patch_version}/p"|sort -n|tail -1)
   fi
   if [ -z "${tag}" ]; then
