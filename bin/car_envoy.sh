@@ -53,7 +53,7 @@ if [ "${debug:-}" = '1' ] && [ "${os}" != 'linux' ]; then
 fi
 
 case ${mode} in
-list) car="car -t --platform ${platform}" ;;
+list) car="car --vv -t --platform ${platform}" ;;
 extract)
   [ "${os}" = 'windows' ] && directory=${directory}/bin
   car="car -x --platform ${platform} -C ${directory}"
@@ -92,6 +92,7 @@ darwin) # https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy.rb
   # The tags for this formula could be mixed versions and also ambiguous. This
   # constrained to the patch we are looking for and also ensures we get the
   # last publication of it (ex 1.19.1-1 not 1.19.1).
+  tag=""
   if tags_json=$(${curl} -H 'Authorization: Bearer QQ==' -H 'Accept: application/json' "${tags_url}" 2>&-); then
     tag=$(echo "${tags_json}"|jq -er '.tags |.[]' | sed -n "/${patch_version}/p"|sort -n|tail -1)
   fi
