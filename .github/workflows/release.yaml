@@ -62,7 +62,6 @@ jobs:
         # Non-deprecated from https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
         # Note: We don't test arm64 on release as it is unlikely to fail and too much effort.
         include:
-          - os: ubuntu-18.04
           - os: ubuntu-20.04
           - os: macos-12
           - os: windows-2019
