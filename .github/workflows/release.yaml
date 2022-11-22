@@ -61,8 +61,13 @@ jobs:
       matrix:
         # Non-deprecated from https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
         # Note: We don't test arm64 on release as it is unlikely to fail and too much effort.
+        #
+        # Operating systems in this matrix can run recent versions of Envoy. This needs maintenance
+        # as Envoy requires newer versions of libc. The point of these tests are only to ensure the tarball wasn't corrupted
+        # or built for the wrong platform.
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-20.04 # the envoy 1.24.0 is the earliest to support this.
+          - os: ubuntu-22.04
           - os: macos-12
           - os: windows-2019
           - os: windows-2022
