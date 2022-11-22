@@ -66,7 +66,8 @@ jobs:
         # as Envoy requires newer versions of libc. The point of these tests are only to ensure the tarball wasn't corrupted
         # or built for the wrong platform.
         include:
-          - os: ubuntu-20.04 # the envoy 1.24.0 is the earliest to support this.
+          # - os: ubuntu-18.04 # Envoy 1.23.x is the last Envoy version that runs on ubuntu-18.04.
+          - os: ubuntu-20.04 # Envoy 1.24.x requires minimally ubuntu-20.04.
           - os: ubuntu-22.04
           - os: macos-12
           - os: windows-2019
