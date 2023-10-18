@@ -1,4 +1,4 @@
-#!/bin/sh -ue
+#!/usr/bin/env bash
 
 # Copyright 2021 Tetrate
 #
@@ -13,6 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+set -ue
 
 # This creates a directory archiving a GitHub release version for all available platforms.
 #  * The first parameter ($1) is the source GitHub repository to archive. Ex envoyproxy/envoy
@@ -76,11 +78,33 @@ archive) carMode=extract ;;
 *) echo >&2 "invalid op ${op}" && exit 1 ;;
 esac
 
+curl="curl -fsSL"
+
+# A valid GitHub token to avoid rate limiting.
+githubToken=${GITHUB_TOKEN:-}
+# Prepare authorization header when performing request to api.github.com to avoid rate limiting, especially when testing locally.
+authorizationHeader="Authorization: Bearer ${githubToken}"
+
 # Setup defaults that make archival consistent between runs
 export TZ=UTC
-# ex. "2021-05-11T19:15:27Z" ->  "2021-05-11"
-RELEASE_DATE=$(curl -fsSL "https://api.github.com/repos/${sourceGitHubRepository}/releases"'?per_page=100' |
-  jq -er ".|map(select(.prerelease == false and .draft == false and .name ==\"${sourceVersion}\"))|first|.published_at" | cut -c1-10) || exit 1
+
+# Fetch the last page number of releases (example value: 7), so we can get all of the releases.
+# To get the last page, we send a HEAD request to "https://api.github.com/repos/${sourceGitHubRepository}/releases",
+# then "grep" the "link" header value.
+# Reference: https://docs.github.com/en/rest/guides/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers.
+lastReleasePage=$(${curl}I ${githubToken:+ -H "${authorizationHeader}"} "https://api.github.com/repos/${sourceGitHubRepository}/releases" |
+  grep -Eo 'page=[0-9]+' | awk 'NR==2' | cut -d'=' -f2) || exit 1
+
+RELEASE_DATE="null"
+for ((page = 1; page <= lastReleasePage; page++)); do
+  # ex. "2021-05-11T19:15:27Z" ->  "2021-05-11"
+  RELEASE_DATE=$(${curl} ${githubToken:+ -H "${authorizationHeader}"} -fsSL "https://api.github.com/repos/${sourceGitHubRepository}/releases"'?page='"${page}" |
+    jq -er ".|map(select(.prerelease == false and .draft == false and .name ==\"${sourceVersion}\"))|first|.published_at" | cut -c1-10) || exit 1
+  if [ "${RELEASE_DATE}" != "null" ]; then
+      break
+  fi
+done
+
 if [ "${RELEASE_DATE}" = "null" ]; then
   echo >&2 "version ${sourceVersion} has not yet been released" && exit 1
 fi
