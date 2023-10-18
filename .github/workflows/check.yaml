@@ -26,4 +26,4 @@ jobs:
       - name: "Check Envoy releases"
         run: ./bin/check_releases.sh envoyproxy/envoy tetratelabs/archive-envoy
         env:  # Set the gh's GH_TOKEN. See: https://cli.github.com/manual/gh_help_environment.
-          GH_TOKEN: ${{ secrets.PACKAGE_BUMP_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
