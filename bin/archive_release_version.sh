@@ -1,4 +1,4 @@
-#!/bin/sh -ue
+#!/usr/bin/env bash -ue
 
 # Copyright 2021 Tetrate
 #
