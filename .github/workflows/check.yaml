@@ -5,12 +5,11 @@
 name: "check"
 
 on:
-  push:
-    branches:
-      - check-release
-  # schedule:
-  #   - cron: '0 0 * * *' # https://crontab.guru/#0_0_*_*_*
-  # workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # https://crontab.guru/#0_0_*_*_*
+
+  # Allows triggering the workflow manually in github actions page.
+  workflow_dispatch:
 
 defaults:
   run:  # use bash for all operating systems unless overridden
