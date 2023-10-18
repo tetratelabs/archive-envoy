@@ -16,6 +16,9 @@
 
 set -ue
 
+# This checks upstrean ${sourceGitHubRepository} releases and compares it
+# with the released versions on https://archive.tetratelabs.io/envoy/envoy-versions.json.
+
 # Ensure we have tools we need installed
 curl --version >/dev/null
 jq --version >/dev/null
@@ -23,6 +26,7 @@ gh --version >/dev/null
 
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}
 targetGitHubRepository=${2?targetGitHubRepository is required. ex tetratelabs/archive-envoy}
+lowestVersion=${3?lowestVersion is required. ex 12.0.0}
 
 curl="curl -fsSL"
 
@@ -50,7 +54,7 @@ for ((page = 1; page <= lastReleasePage; page++)); do
       continue
     fi
 
-    if [[ "$(echo -e "${version#v}\n1.12.0" | sort -V | tail -n 1)" == "${version#v}" ]]; then
+    if [[ "$(echo -e "${version#v}\n${lowestVersion}" | sort -V | tail -n 1)" == "${version#v}" ]]; then
       echo "creating release for"' '"${version}"
       gh workflow run release.yaml -f version="${version}"_debug -R "${targetGitHubRepository}"
       gh workflow run release.yaml -f version="${version}" -R "${targetGitHubRepository}"
