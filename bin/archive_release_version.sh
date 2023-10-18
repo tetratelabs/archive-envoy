@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -ue
+#!/usr/bin/env bash
 
 # Copyright 2021 Tetrate
 #
@@ -13,6 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+set -ue
 
 # This creates a directory archiving a GitHub release version for all available platforms.
 #  * The first parameter ($1) is the source GitHub repository to archive. Ex envoyproxy/envoy
@@ -37,6 +39,8 @@
 #
 # Notes:
 #  * The resulting tarball is "tar.xz" not "tar.gz" as the former is significantly smaller.
+
+set -ue
 
 # Verify args
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}

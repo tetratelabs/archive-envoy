@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -ue
+#!/usr/bin/env bash
 
 # Copyright 2021 Tetrate
 #
@@ -13,6 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+set -ue
 
 # This is an Envoy® plug-in to extract_release_version.sh and called in a loop for each OS and
 # architecture for a given version. The result is a distribution directory including the `envoy` binary.
