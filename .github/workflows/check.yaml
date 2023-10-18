@@ -1,0 +1,26 @@
+# `name` value will appear "as is" in the badge.
+# See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
+# yamllint --format github .github/workflows/release.yaml
+---
+name: "check"
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # https://crontab.guru/#0_0_*_*_*
+  workflow_dispatch:
+
+defaults:
+  run:  # use bash for all operating systems unless overridden
+    shell: bash
+
+jobs:
+  check:
+    name: "Check Envoy® Releases"
+    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v3
+      - name: "Check Envoy releases"
+        run: ./bin/check_releases.sh envoyproxy/envoy tetratelabs/archive-envoy
+        env:  # Set the gh's GH_TOKEN. See: https://cli.github.com/manual/gh_help_environment.
+          GH_TOKEN: ${{ secrets.PACKAGE_BUMP_TOKEN }}
