@@ -40,8 +40,6 @@ set -ue
 # Notes:
 #  * The resulting tarball is "tar.xz" not "tar.gz" as the former is significantly smaller.
 
-set -ue
-
 # Verify args
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}
 name=$(basename "${sourceGitHubRepository}") || exit 1
@@ -108,7 +106,7 @@ for ((page = 1; page <= lastReleasePage; page++)); do
 done
 
 if [ "${RELEASE_DATE}" = "null" ]; then
-    echo >&2 "version ${sourceVersion} has not yet been released" && exit 1
+  echo >&2 "version ${sourceVersion} has not yet been released" && exit 1
 fi
 
 export RELEASE_DATE
