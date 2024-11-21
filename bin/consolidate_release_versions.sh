@@ -67,4 +67,6 @@ for ((page = 1; page <= lastReleasePage; page++)); do
 done
 
 # reorder top-level keys so that versions appear before sha256sums
-echo "${releaseVersions}" | jq '{latestVersion: .latestVersion, versions: .versions, sha256sums: .sha256sums}'
+echo "${releaseVersions}" |\
+  jq '. | .latestVersion = ( .versions | keys | sort | .[-1] )' |\
+  jq '{latestVersion: .latestVersion, versions: .versions, sha256sums: .sha256sums}'
