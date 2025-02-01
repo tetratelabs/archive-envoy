@@ -69,7 +69,7 @@ jobs:
           # - os: ubuntu-18.04 # Envoy 1.23.x is the last Envoy version that runs on ubuntu-18.04.
           - os: ubuntu-20.04 # Envoy 1.24.x requires minimally ubuntu-20.04.
           - os: ubuntu-22.04
-          - os: macos-12
+          - os: macos-latest
           - os: windows-2019
           - os: windows-2022
 
