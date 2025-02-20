@@ -35,10 +35,11 @@ set -ue
 # Envoy® is a registered trademark of The Linux Foundation in the United States and/or other countries
 
 # Ensure we have tools we need installed
-car >/dev/null
 curl --version >/dev/null
 jq --version >/dev/null
+go version >/dev/null
 curl="curl -fsSL"
+gocar="go run github.com/tetratelabs/car/cmd/car@9daeea1cca1aae52978a94441866f1ae073d827a"
 
 # Verify args
 version=${1?version is required. Ex v1.18.3 or v1.18.3_debug}
@@ -55,10 +56,10 @@ if [ "${debug:-}" = '1' ] && [ "${os}" != 'linux' ]; then
 fi
 
 case ${mode} in
-list) car="car --vv -t --platform ${platform}" ;;
+list) car="${gocar} --vv -t --platform ${platform}" ;;
 extract)
   [ "${os}" = 'windows' ] && directory=${directory}/bin
-  car="car -x --platform ${platform} -C ${directory}"
+  car="${gocar} -x --platform ${platform} -C ${directory}"
   ;;
 *) echo >&2 "invalid mode ${mode}" && exit 1 ;;
 esac
