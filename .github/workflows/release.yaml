@@ -23,11 +23,13 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v3
 
-      - name: "Install car and netlify-cli"
+      - name: "Install Go" # So we can run a patched car without needing to release a new version.
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: "Install netlify-cli"
         run: |
-          car_version=1.0.1
-          car_url=https://github.com/tetratelabs/car/releases/download/v${car_version}/car_${car_version}_linux_amd64.tar.gz
-          curl -sSL ${car_url} | tar -C /usr/local/bin -xzf -
           npm install --save-dev netlify-cli
 
       - name: "Archive Envoy Release"
