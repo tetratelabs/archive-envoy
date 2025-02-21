@@ -39,7 +39,7 @@ curl --version >/dev/null
 jq --version >/dev/null
 go version >/dev/null
 curl="curl -fsSL"
-gocar="go run github.com/tetratelabs/car/cmd/car@9daeea1cca1aae52978a94441866f1ae073d827a"
+gocar="go run github.com/tetratelabs/car/cmd/car@5277562d927e44ed994abe15d07f04e35e9eb445"
 
 # Verify args
 version=${1?version is required. Ex v1.18.3 or v1.18.3_debug}
