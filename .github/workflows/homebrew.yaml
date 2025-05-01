@@ -26,9 +26,9 @@ env:
   GIT_COMMITTER: Tetrate Labs CI <38483186+tetratelabs@users.noreply.github.com>
 
 jobs:
-  homebrew:  # help ourselves until https://github.com/envoyproxy/envoy/issues/17500
+  homebrew: # help ourselves until https://github.com/envoyproxy/envoy/issues/17500
     name: "Homebrew/homebrew-core"
-    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+    runs-on: ubuntu-24.04 # Hard-coding an LTS means maintenance, but only once each 2 years!
     steps:
       - name: "Configure git"
         run: |
@@ -42,5 +42,5 @@ jobs:
           formula-name: ${{ github.event.inputs.formula }}
           tag-name: ${{ github.event.inputs.tag-name }}
           download-url: https://github.com/envoyproxy/envoy/archive/${{ github.event.inputs.tag-name }}.tar.gz
-        env:  # See env section for notes on PACKAGE_BUMP_TOKEN
+        env: # See env section for notes on PACKAGE_BUMP_TOKEN
           COMMITTER_TOKEN: ${{ secrets.PACKAGE_BUMP_TOKEN }}
