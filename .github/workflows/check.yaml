@@ -6,25 +6,26 @@ name: "check"
 
 on:
   schedule:
-    - cron: '0 0 * * *' # https://crontab.guru/#0_0_*_*_*
+    - cron: "0 0 * * *" # https://crontab.guru/#0_0_*_*_*
 
   # Allows triggering the workflow manually in github actions page.
   workflow_dispatch:
 
 defaults:
-  run:  # use bash for all operating systems unless overridden
+  run: # use bash for all operating systems unless overridden
     shell: bash
 
 jobs:
   check:
     name: "Check Envoy® Releases"
-    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+    runs-on: ubuntu-24.04 # Hard-coding an LTS means maintenance, but only once each 2 years!
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3
       - name: "Check Envoy releases"
-        run: | # we set 1.18.1 as the lowest version to check because before that, some of the versions did not have published images.
+        run:
+          | # we set 1.18.1 as the lowest version to check because before that, some of the versions did not have published images.
           lowest_version_to_check=1.18.1
           ./bin/check_releases.sh envoyproxy/envoy tetratelabs/archive-envoy ${lowest_version_to_check}
-        env:  # Set the gh's GH_TOKEN. See: https://cli.github.com/manual/gh_help_environment.
+        env: # Set the gh's GH_TOKEN. See: https://cli.github.com/manual/gh_help_environment.
           GH_TOKEN: ${{ secrets.GH_TOKEN }}

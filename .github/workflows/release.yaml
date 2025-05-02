@@ -12,13 +12,13 @@ on:
         required: true
 
 defaults:
-  run:  # use bash for all operating systems unless overridden
+  run: # use bash for all operating systems unless overridden
     shell: bash
 
 jobs:
   archive:
     name: "Archive Envoy® Release"
-    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+    runs-on: ubuntu-24.04 # Hard-coding an LTS means maintenance, but only once each 2 years!
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3
@@ -37,7 +37,7 @@ jobs:
 
       - name: "Upload GitHub Release"
         uses: ncipollo/release-action@v1
-        with:  # TODO: This would be easier to troubleshoot if used `gh` commands like func-e does.
+        with: # TODO: This would be easier to troubleshoot if used `gh` commands like func-e does.
           artifacts: "${{ github.event.inputs.version }}/*"
           allowUpdates: true
           generateReleaseNotes: false
@@ -45,11 +45,11 @@ jobs:
           tag: ${{ github.event.inputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Trigger Netlify deploy"  # The above upload won't create a GHA trigger, so we make one directly
+      - name: "Trigger Netlify deploy" # The above upload won't create a GHA trigger, so we make one directly
         run: ./node_modules/.bin/netlify deploy --message="deploy ${TAG}" --trigger --auth=${NETLIFY_AUTH_TOKEN} --site=${NETLIFY_SITE_ID}
-        env:  # https://github.com/tetratelabs/archive-envoy/settings/secrets
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}  # https://app.netlify.com/user/applications/personal
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}  # .netlify/state.json/siteId
+        env: # https://github.com/tetratelabs/archive-envoy/settings/secrets
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }} # https://app.netlify.com/user/applications/personal
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }} # .netlify/state.json/siteId
 
   # Failures here happen after release, meaning they don't block a release. This is ok as we may be releasing Linux
   # prior to OS/x being available, or releasing a debug version which is only available on Linux. The failures here are
@@ -59,7 +59,7 @@ jobs:
     needs: archive
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
+      fail-fast: false # don't fail fast as sometimes failures are operating system specific
       matrix:
         # Non-deprecated from https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
         # Note: We don't test arm64 on release as it is unlikely to fail and too much effort.
@@ -69,17 +69,18 @@ jobs:
         # or built for the wrong platform.
         include:
           # - os: ubuntu-18.04 # Envoy 1.23.x is the last Envoy version that runs on ubuntu-18.04.
-          - os: ubuntu-20.04 # Envoy 1.24.x requires minimally ubuntu-20.04.
           - os: ubuntu-22.04
+          - os: ubuntu-24.04
           - os: macos-latest
 
     steps:
       - name: "Extract `envoy` binary from GitHub release assets"
-        run: |  # https://docs.github.com/en/actions/learn-github-actions/environment-variables
+        run:
+          | # https://docs.github.com/en/actions/learn-github-actions/environment-variables
           os=$(echo ${RUNNER_OS} | tr '[:upper:]' '[:lower:]' | sed 's/macos/darwin/g' )
           gh release -R ${GITHUB_REPOSITORY} download "${{ github.event.inputs.version }}" -p "*-${os}-amd64.tar.xz"
           tar --strip-components=2 -xpJf *.tar.xz && rm *.tar.xz
-        env:  # authenticate release downloads in case it is a draft (not public)
+        env: # authenticate release downloads in case it is a draft (not public)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - run: ./envoy --version
