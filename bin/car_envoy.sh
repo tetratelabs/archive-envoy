@@ -21,7 +21,7 @@ set -ue
 #
 #  * The first parameter ($1) is the release version. Ex. v1.18.3 or v1.18.3_debug.
 #    * The "_debug" suffix toggles if the binary is stripped and if debug symbols are included.
-#  * The second parameter ($2) is the operating system: darwin, linux or windows
+#  * The second parameter ($2) is the operating system: darwin or linux
 #  * The third parameter ($3) is the architecture: amd64 or arm64
 #  * The fourth parameter ($4) is the `car` mode: extract or list
 #    * list exits successfully if the expected files are available in OCI layers
@@ -29,7 +29,6 @@ set -ue
 #
 # The result is envoy-$version-$os-$arch which contents appropriate per platform
 #  Ex. envoy-v1.18.3-linux-amd64/bin/envoy
-#  Ex. envoy-v1.18.3-windows-amd64/bin/envoy.exe
 #
 # -----
 # Envoy® is a registered trademark of The Linux Foundation in the United States and/or other countries
@@ -43,7 +42,7 @@ gocar="go run github.com/tetratelabs/car/cmd/car@5277562d927e44ed994abe15d07f04e
 
 # Verify args
 version=${1?version is required. Ex v1.18.3 or v1.18.3_debug}
-os=${2?os is required: darwin linux or windows}
+os=${2?os is required: darwin or linux}
 arch=${3?arch is required: amd64 or arm64}
 mode=${4?mode is required: list or extract}
 directory=${5:-}
@@ -58,7 +57,6 @@ fi
 case ${mode} in
 list) car="${gocar} --vv -t --platform ${platform}" ;;
 extract)
-  [ "${os}" = 'windows' ] && directory=${directory}/bin
   car="${gocar} -x --platform ${platform} -C ${directory}"
   ;;
 *) echo >&2 "invalid mode ${mode}" && exit 1 ;;
@@ -117,10 +115,6 @@ linux)
   # Don't use --created-by-pattern because Envoy 1.22.0+ changed the image layer containing the binary.
   # Note: Unlike windows, layers preceding the Envoy binary are small, so scanning through is OK.
   ${car} --strip-components 2 -qf "${reference}" ${files}
-  ;;
-windows)
-  reference=envoyproxy/envoy-windows:${version}
-  ${car} --created-by-pattern ADD --strip-components 3 -qf "${reference}" 'Files/Program Files/envoy/envoy.exe'
   ;;
 *)
   echo >&2 "os ${os} not yet supported" && exit 1

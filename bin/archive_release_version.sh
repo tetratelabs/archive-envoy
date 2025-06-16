@@ -115,7 +115,7 @@ tarxz="${tar} --numeric-owner --owner 65534 --group 65534 --mtime ${RELEASE_DATE
 echo "archiving ${sourceGitHubRepository} ${version} released on ${RELEASE_DATE}"
 # archive all dists for the version, generating https://archive.tetratelabs.io/release-versions-schema.json incrementally
 releaseVersions="{}"
-for os in darwin linux windows; do
+for os in darwin linux; do
   for arch in amd64 arm64; do
     dist="envoy-${version}-${os}-${arch}"
     echo "using dist: ${dist}"
