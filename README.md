@@ -14,7 +14,6 @@ binary.
 
 Here are a couple examples:
  * `envoy-v1.18.3-linux-amd64.xz` contains `envoy-v1.18.3-linux-amd64/bin/envoy`
- * `envoy-v1.18.3-windows-amd64.tar.xz` contains `envoy-v1.18.3-windows-amd64/bin/envoy.exe`
 
 It also includes `envoy-$version.json` which adheres to the [release versions schema](https://archive.tetratelabs.io/release-versions-schema.json).
 
@@ -107,7 +106,6 @@ Here are some examples of why stable archives help:
     * Which version+os+arch dimensions to publish, and the retention policy are yet unknown
 * Envoy Docker images exist, but are neither official nor from a verified publisher.
     * https://hub.docker.com/r/envoyproxy/envoy
-    * https://hub.docker.com/r/envoyproxy/envoy-windows
     * Under DockerHub retention policy, these delete if not pulled within 6 months
 * Envoy MacOS binaries exist in Homebrew
     * https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy.rb
