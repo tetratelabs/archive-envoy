@@ -117,6 +117,11 @@ jobs:
           name: envoy-${{ github.event.inputs.version }}-darwin-arm64
           path: ${{ github.event.inputs.version }}/envoy-${{ github.event.inputs.version }}-darwin-arm64/bin
 
+      - name: "Mark macOS Apple Silicon binary as executable"
+        # https://github.com/actions/upload-artifact/issues/38
+        # https://github.com/actions/download-artifact/issues/14
+        run: chmod +x ${{ github.event.inputs.version }}/envoy-${{ github.event.inputs.version }}-darwin-arm64/bin/envoy
+
       - name: "Archive Envoy Release"
         run: ./bin/archive_release_version.sh envoyproxy/envoy "${{ github.event.inputs.version }}"
 
@@ -153,17 +158,17 @@ jobs:
         # as Envoy requires newer versions of libc. The point of these tests are only to ensure the tarball wasn't corrupted
         # or built for the wrong platform.
         include:
-          # - os: ubuntu-18.04 # Envoy 1.23.x is the last Envoy version that runs on ubuntu-18.04.
-          - os: ubuntu-22.04
           - os: ubuntu-24.04
-          - os: macos-latest
+            arch: amd64
+          - os: macos-15-xlarge
+            arch: arm64
 
     steps:
       - name: "Extract `envoy` binary from GitHub release assets"
         run:
           | # https://docs.github.com/en/actions/learn-github-actions/environment-variables
           os=$(echo ${RUNNER_OS} | tr '[:upper:]' '[:lower:]' | sed 's/macos/darwin/g' )
-          gh release -R ${GITHUB_REPOSITORY} download "${{ github.event.inputs.version }}" -p "*-${os}-amd64.tar.xz"
+          gh release -R ${GITHUB_REPOSITORY} download "${{ github.event.inputs.version }}" -p "*-${os}-${{ matrix.arch }}.tar.xz"
           tar --strip-components=2 -xpJf *.tar.xz && rm *.tar.xz
         env: # authenticate release downloads in case it is a draft (not public)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
