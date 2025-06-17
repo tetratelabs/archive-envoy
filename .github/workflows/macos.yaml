@@ -10,6 +10,7 @@ on:
 jobs:
   build-envoy:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-15-xlarge
@@ -29,7 +30,14 @@ jobs:
       - name: Install build-time tools
         run: |
           brew update
-          brew install automake cmake libtool ninja bazelisk python@3.9 coreutils
+          brew install automake cmake libtool ninja bazelisk python@3.9 coreutils llvm@18
+
+      - name: Set up LLVM-18 clang/clang++ on PATH
+        run: |
+          llvm_path=$(brew --prefix llvm@18)
+          echo "$llvm_path/bin" >> $GITHUB_PATH
+          echo "CC=$llvm_path/bin/clang" >> $GITHUB_ENV
+          echo "CXX=$llvm_path/bin/clang++" >> $GITHUB_ENV
 
       - name: Add Python 3.9 to PATH
         run: echo "/usr/local/opt/python@3.9/bin" >> $GITHUB_PATH
@@ -49,6 +57,11 @@ jobs:
             --verbose_failures
             --define=wasm=disabled
             --copt=-Wno-unused-but-set-variable
+            --config=clang
+            --action_env=CC=${CC}
+            --action_env=CXX=${CXX}
+            --host_action_env=CC=${CC}
+            --host_action_env=CXX=${CXX}
           )
 
           # if Clang ≥17, disable the new missing-template-arg-list warning
