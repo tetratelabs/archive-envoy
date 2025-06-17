@@ -1,0 +1,59 @@
+name: Build Envoy on macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag-name:
+        description: Release tag of Envoy. Ex v1.34.1
+        required: true
+
+jobs:
+  build-envoy:
+    runs-on: macos-latest
+    steps:
+      - name: Check out Envoy source for the specified tag
+        uses: actions/checkout@v4
+        with:
+          repository: https://github.com/envoyproxy/envoy
+          ref: ${{ github.event.inputs.tag-name }}
+          fetch-depth: 0
+
+      - name: Install build-time tools
+        run: |
+          brew update
+          brew install automake cmake libtool ninja bazelisk python@3.9 coreutils
+
+      - name: Add Python 3.9 to PATH
+        run: echo "/usr/local/opt/python@3.9/bin" >> $GITHUB_PATH
+
+      - name: Write current source version
+        run: python3 tools/github/write_current_source_version.py --skip_error_in_git
+
+      - name: Build envoy-static.stripped
+        run: |
+          # locate bazelisk
+          BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
+
+          # base Bazel flags from the Homebrew formula
+          ARGS=(
+            --compilation_mode=opt
+            --curses=no
+            --verbose_failures
+            --define=wasm=disabled
+            --copt=-Wno-unused-but-set-variable
+          )
+
+          # if Clang ≥17, disable the new missing-template-arg-list warning
+          CLANG_MAJOR=$(clang --version | sed -n 's/.*clang version \([0-9]\+\).*/\1/p')
+          if [ "$CLANG_MAJOR" -ge 17 ]; then
+            ARGS+=(--copt=-Wno-missing-template-arg-list-after-template-kw)
+          fi
+
+          # build the static binary
+          $BAZELISK build "${ARGS[@]}" //source/exe:envoy-static
+
+      - name: Upload Envoy binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: envoy-macos
+          path: bazel-bin/source/exe/envoy-static
