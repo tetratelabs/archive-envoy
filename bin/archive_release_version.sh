@@ -63,7 +63,7 @@ curl --version >/dev/null
 sha256sum --version >/dev/null
 jq --version >/dev/null
 tar=tar
-# we need GNU tar. On Darwin, the system default is not gtar. `brew install gtar` if that's you!
+# we need GNU tar. On Darwin, the system default is not gtar. `brew install gnu-tar` if that's you!
 which gtar >/dev/null && tar=gtar
 ${tar} --version | grep 'GNU tar' >/dev/null
 
@@ -119,16 +119,21 @@ for os in darwin linux; do
   for arch in amd64 arm64; do
     dist="envoy-${version}-${os}-${arch}"
     echo "using dist: ${dist}"
-    # permit a version to fail rather than duplicating maintenance here and in archive_release.sh
-    set +e
-    "${carScript}" "${version}" "${os}" "${arch}" "${carMode}" "${version}/${dist}"
-    rc=$?
-    set -e
-    [ "${op}" = 'check' ] || [ "${rc}" != '0' ] && continue
 
-    if ! [ -d "${version}/${dist}" ]; then
-      echo >&2 "expected to extract files for ${os}/${arch}" && exit 1
-      exit 1
+    if [ -d "${version}/${dist}" ]; then
+      echo "using existing dist"
+    else
+      # permit a version to fail rather than duplicating maintenance here and in archive_release.sh
+      set +e
+      "${carScript}" "${version}" "${os}" "${arch}" "${carMode}" "${version}/${dist}"
+      rc=$?
+      set -e
+      [ "${op}" = 'check' ] || [ "${rc}" != '0' ] && continue
+
+      if ! [ -d "${version}/${dist}" ]; then
+        echo >&2 "expected to extract files for ${os}/${arch}" && exit 1
+        exit 1
+      fi
     fi
 
     archive="${dist}.tar.xz"

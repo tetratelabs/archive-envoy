@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version of the release. Ex v1.18.3 or v1.18.3_debug
+        description: Version of the release. Ex v1.34.1 or v1.34.1_debug
         required: true
 
 defaults:
@@ -16,8 +16,86 @@ defaults:
     shell: bash
 
 jobs:
+  build-envoy-macos:
+    runs-on: macos-15-xlarge
+    name: "Build Envoy® for MacOS Apple Silicon"
+    # steps are skipped instead of skipping job as if we skipped the job, the
+    # archive job would not run.
+    steps:
+      - name: Check out Envoy source for the specified tag
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        uses: actions/checkout@v4
+        with:
+          repository: envoyproxy/envoy
+          ref: ${{ github.event.inputs.version }}
+          fetch-depth: 0
+
+      - name: Install build-time tools
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        run: |
+          brew update
+          brew install automake cmake libtool ninja bazelisk python@3.9 coreutils llvm@18
+
+      - name: Set up LLVM-18 clang/clang++ on PATH
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        run: |
+          llvm_path=$(brew --prefix llvm@18)
+          echo "$llvm_path/bin" >> $GITHUB_PATH
+          echo "CC=$llvm_path/bin/clang" >> $GITHUB_ENV
+          echo "CXX=$llvm_path/bin/clang++" >> $GITHUB_ENV
+
+      - name: Add Python 3.9 to PATH
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        run: echo "/usr/local/opt/python@3.9/bin" >> $GITHUB_PATH
+
+      - name: Write current source version
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        run: python3 tools/github/write_current_source_version.py --skip_error_in_git
+
+      - name: Build envoy-static
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        run: |
+          # locate bazelisk
+          BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
+
+          # base Bazel flags from the Homebrew formula
+          ARGS=(
+            --compilation_mode=opt
+            --curses=no
+            --verbose_failures
+            --define=wasm=disabled
+            --copt=-Wno-unused-but-set-variable
+            --config=clang
+            --action_env=CC=${CC}
+            --action_env=CXX=${CXX}
+            --host_action_env=CC=${CC}
+            --host_action_env=CXX=${CXX}
+          )
+
+          # if Clang ≥17, disable the new missing-template-arg-list warning
+          CLANG_MAJOR=$(clang --version | sed -n 's/.*clang version \([0-9]\+\).*/\1/p')
+          if [ "$CLANG_MAJOR" -ge 17 ]; then
+            ARGS+=(--copt=-Wno-missing-template-arg-list-after-template-kw)
+          fi
+
+          # build the static binary
+          $BAZELISK build "${ARGS[@]}" //source/exe:envoy-static
+          
+          # rename it
+          mkdir bin
+          mv bazel-bin/source/exe/envoy-static bin/envoy
+          chmod +x bin/envoy
+
+      - name: Upload Envoy binary
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: envoy-${{ github.event.inputs.version }}-darwin-arm64
+          path: bin/envoy
+
   archive:
     name: "Archive Envoy® Release"
+    needs: build-envoy-macos
     runs-on: ubuntu-24.04 # Hard-coding an LTS means maintenance, but only once each 2 years!
     steps:
       - name: "Checkout"
@@ -31,6 +109,13 @@ jobs:
       - name: "Install netlify-cli"
         run: |
           npm install --save-dev netlify-cli
+
+      - name: "Download macOS Apple Silicon binary"
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        uses: actions/download-artifact@v4
+        with:
+          name: envoy-${{ github.event.inputs.version }}-darwin-arm64
+          path: ${{ github.event.inputs.version }}/envoy-${{ github.event.inputs.version }}-darwin-arm64/bin
 
       - name: "Archive Envoy Release"
         run: ./bin/archive_release_version.sh envoyproxy/envoy "${{ github.event.inputs.version }}"
