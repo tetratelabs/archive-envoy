@@ -9,7 +9,15 @@ on:
 
 jobs:
   build-envoy:
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - os: macos-15-xlarge
+            name: arm64
+          - os: macos-15-large
+            name: amd64
+    runs-on: ${{ matrix.os }}
+    name: Build Envoy (macOS / ${{ matrix.name }})
     steps:
       - name: Check out Envoy source for the specified tag
         uses: actions/checkout@v4
@@ -29,7 +37,7 @@ jobs:
       - name: Write current source version
         run: python3 tools/github/write_current_source_version.py --skip_error_in_git
 
-      - name: Build envoy-static.stripped
+      - name: Build envoy-static
         run: |
           # locate bazelisk
           BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
@@ -55,5 +63,5 @@ jobs:
       - name: Upload Envoy binary
         uses: actions/upload-artifact@v4
         with:
-          name: envoy-macos-${{ github.event.inputs.tag-name }}
+          name: envoy-macos-${{ github.event.inputs.tag-name }}-${{ matrix.name }}
           path: bazel-bin/source/exe/envoy-static
