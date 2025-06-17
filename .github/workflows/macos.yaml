@@ -53,7 +53,7 @@ jobs:
           $BAZELISK build "${ARGS[@]}" //source/exe:envoy-static
 
       - name: Upload Envoy binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: envoy-macos
+          name: envoy-macos-${{ github.event.inputs.tag-name }}
           path: bazel-bin/source/exe/envoy-static
