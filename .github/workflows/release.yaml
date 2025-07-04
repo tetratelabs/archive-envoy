@@ -35,6 +35,7 @@ jobs:
         run: |
           brew update
           brew install automake cmake libtool ninja bazelisk python@3.9 coreutils llvm@18
+          echo "$(brew --prefix coreutils)/libexec/gnubin" >> $GITHUB_PATH
 
       - name: Set up LLVM-18 clang/clang++ on PATH
         if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
@@ -55,6 +56,7 @@ jobs:
       - name: Build envoy-static
         if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: |
+          export MACOSX_DEPLOYMENT_TARGET=10.15
           # locate bazelisk
           BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
 
@@ -63,13 +65,14 @@ jobs:
             --compilation_mode=opt
             --curses=no
             --verbose_failures
-            --define=wasm=disabled
+            --define=wasm=enabled
             --copt=-Wno-unused-but-set-variable
             --config=clang
             --action_env=CC=${CC}
             --action_env=CXX=${CXX}
             --host_action_env=CC=${CC}
             --host_action_env=CXX=${CXX}
+            --macos_minimum_os=10.15
           )
 
           # if Clang ≥17, disable the new missing-template-arg-list warning
