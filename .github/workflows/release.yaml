@@ -72,7 +72,7 @@ jobs:
             --action_env=CXX=${CXX}
             --host_action_env=CC=${CC}
             --host_action_env=CXX=${CXX}
-            --macos_minimum_os=10.15
+            --macos_minimum_os=${MACOSX_DEPLOYMENT_TARGET}
           )
 
           # if Clang ≥17, disable the new missing-template-arg-list warning
