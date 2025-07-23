@@ -56,10 +56,15 @@ jobs:
       - name: Build envoy-static
         if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.15
-          export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+          export MACOSX_DEPLOYMENT_TARGET=14.5
           # locate bazelisk
           export BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
+
+          XCODE_DEFAULT_VERSION=16.1
+          XCODE_VERSION="${XCODE_VERSION:-${XCODE_DEFAULT_VERSION}}"
+          if [[ -n "$XCODE_VERSION" ]]; then
+            sudo xcode-select --switch "/Applications/Xcode_${XCODE_VERSION}.app"
+          fi
 
           # base Bazel flags from the Homebrew formula
           ARGS=(
@@ -68,9 +73,6 @@ jobs:
             --verbose_failures
             --define=wasm=enabled
             --copt=-Wno-unused-but-set-variable
-            --copt="-isysroot ${SDKROOT}"
-            --linkopt="-isysroot ${SDKROOT}"
-            --linkopt="-L${SDKROOT}/usr/lib"
             --config=clang
             --action_env=CC=${CC}
             --action_env=CXX=${CXX}
