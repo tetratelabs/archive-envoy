@@ -57,8 +57,9 @@ jobs:
         if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: |
           export MACOSX_DEPLOYMENT_TARGET=10.15
+          export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
           # locate bazelisk
-          BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
+          export BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
 
           # base Bazel flags from the Homebrew formula
           ARGS=(
@@ -67,6 +68,9 @@ jobs:
             --verbose_failures
             --define=wasm=enabled
             --copt=-Wno-unused-but-set-variable
+            --copt="-isysroot ${SDKROOT}"
+            --linkopt="-isysroot ${SDKROOT}"
+            --linkopt="-L${SDKROOT}/usr/lib"
             --config=clang
             --action_env=CC=${CC}
             --action_env=CXX=${CXX}
