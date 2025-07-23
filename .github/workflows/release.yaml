@@ -66,6 +66,9 @@ jobs:
             sudo xcode-select --switch "/Applications/Xcode_${XCODE_VERSION}.app"
           fi
 
+          # Get LLVM path for libc++ libraries
+          LLVM_PATH=$(brew --prefix llvm@18)
+
           # base Bazel flags from the Homebrew formula
           ARGS=(
             --compilation_mode=opt
@@ -79,6 +82,10 @@ jobs:
             --host_action_env=CC=${CC}
             --host_action_env=CXX=${CXX}
             --macos_minimum_os=${MACOSX_DEPLOYMENT_TARGET}
+            --linkopt=-L${LLVM_PATH}/lib/c++
+            --linkopt=-L${LLVM_PATH}/lib
+            --linkopt=-lc++
+            --linkopt=-lc++abi
           )
 
           # if Clang ≥17, disable the new missing-template-arg-list warning
