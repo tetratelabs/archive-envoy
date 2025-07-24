@@ -45,6 +45,11 @@ jobs:
           echo "CC=$llvm_path/bin/clang" >> $GITHUB_ENV
           echo "CXX=$llvm_path/bin/clang++" >> $GITHUB_ENV
 
+      - name: Remove `BAZEL_LINKLIBS` from .bazelrc to make it compatible with macOS the brew installed LLVM.
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        run: |
+          sed -i '' '/--action_env=BAZEL_LINKLIBS=-l%:libc++.a:-l%:libc++abi.a/d' .bazelrc
+
       - name: Add Python 3.9 to PATH
         if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: echo "/usr/local/opt/python@3.9/bin" >> $GITHUB_PATH
