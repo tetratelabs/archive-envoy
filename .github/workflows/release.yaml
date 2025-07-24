@@ -72,7 +72,7 @@ jobs:
           fi
 
           # Get LLVM path for libc++ libraries
-          LLVM_PATH=$(brew --prefix llvm@18)
+          LLVM_CXX_LIB_PATH=$(brew --prefix llvm@18)/lib/c++
 
           # base Bazel flags from the Homebrew formula
           ARGS=(
@@ -86,8 +86,10 @@ jobs:
             --action_env=CXX=${CXX}
             --host_action_env=CC=${CC}
             --host_action_env=CXX=${CXX}
-            --linkopt=-L${LLVM_PATH}/lib/c++
-            --action_env=BAZEL_LINKOPTS=-L${LLVM_PATH}/lib/c++
+            --linkopt=${LLVM_CXX_LIB_PATH}/libc++.a
+            --linkopt=${LLVM_CXX_LIB_PATH}/libc++abi.a
+            --action_env=BAZEL_LINKOPTS=${LLVM_CXX_LIB_PATH}/libc++.a
+            --action_env=BAZEL_LINKOPTS=${LLVM_CXX_LIB_PATH}/libc++abi.a
             --macos_minimum_os=${MACOSX_DEPLOYMENT_TARGET}
           )
 
