@@ -76,7 +76,6 @@ jobs:
             --verbose_failures
             --define=wasm=enabled
             --copt=-Wno-unused-but-set-variable
-            --copt=-Wno-missing-template-arg-list-after-template-kw
             --config=clang
             --action_env=CC=${CC}
             --action_env=CXX=${CXX}
