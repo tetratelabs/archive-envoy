@@ -86,8 +86,8 @@ jobs:
             --action_env=CXX=${CXX}
             --host_action_env=CC=${CC}
             --host_action_env=CXX=${CXX}
-            --linkopt=/opt/homebrew/opt/llvm@18/lib/c++/libc++.a
-            --linkopt=/opt/homebrew/opt/llvm@18/lib/c++/libc++abi.a
+            --linkopt=${LLVM_CXX_LIB_PATH}/libc++.a
+            --linkopt=${LLVM_CXX_LIB_PATH}/libc++abi.a
             --action_env=BAZEL_LINKOPTS=${LLVM_CXX_LIB_PATH}/libc++.a
             --action_env=BAZEL_LINKOPTS=${LLVM_CXX_LIB_PATH}/libc++abi.a
             --macos_minimum_os=${MACOSX_DEPLOYMENT_TARGET}
