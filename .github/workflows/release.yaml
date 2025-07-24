@@ -23,6 +23,7 @@ jobs:
     # archive job would not run.
     steps:
       - name: Check out Envoy source for the specified tag
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         uses: actions/checkout@v4
         with:
           repository: envoyproxy/envoy
@@ -30,12 +31,14 @@ jobs:
           fetch-depth: 0
 
       - name: Install build-time tools
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: |
           brew update
           brew install automake cmake libtool ninja bazelisk python@3.9 coreutils llvm@18
           echo "$(brew --prefix coreutils)/libexec/gnubin" >> $GITHUB_PATH
 
       - name: Set up LLVM-18 clang/clang++ on PATH
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: |
           llvm_path=$(brew --prefix llvm@18)
           echo "$llvm_path/bin" >> $GITHUB_PATH
@@ -43,9 +46,11 @@ jobs:
           echo "CXX=$llvm_path/bin/clang++" >> $GITHUB_ENV
 
       - name: Add Python 3.9 to PATH
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: echo "/usr/local/opt/python@3.9/bin" >> $GITHUB_PATH
 
       - name: Write current source version
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: python3 tools/github/write_current_source_version.py --skip_error_in_git
 
       - name: Build envoy-static
