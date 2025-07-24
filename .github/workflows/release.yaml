@@ -73,11 +73,15 @@ jobs:
             --copt=-Wno-unused-but-set-variable
             --copt=-Wno-missing-template-arg-list-after-template-kw
             --config=clang
-            --config=libstdc++
             --action_env=CC=${CC}
             --action_env=CXX=${CXX}
             --host_action_env=CC=${CC}
             --host_action_env=CXX=${CXX}
+            --linkopt=-L${LLVM_PATH}/lib/c++
+            --linkopt=-l:${LLVM_PATH}/lib/c++/libc++.a
+            --linkopt=-l:${LLVM_PATH}/lib/c++/libc++abi.a
+            --action_env=BAZEL_LINKLIBS=-l%:libc++.a:-l%:${LLVM_PATH}/lib/c++/libc++.a
+            --action_env=BAZEL_LINKLIBS=-l%:libc++.a:-l%:${LLVM_PATH}/lib/c++/libc++abi.a
             --macos_minimum_os=${MACOSX_DEPLOYMENT_TARGET}
           )
 
