@@ -45,6 +45,11 @@ jobs:
           echo "CC=$llvm_path/bin/clang" >> $GITHUB_ENV
           echo "CXX=$llvm_path/bin/clang++" >> $GITHUB_ENV
 
+      - name: Remove `BAZEL_LINKLIBS` from .bazelrc to make it compatible with macOS the brew installed LLVM.
+        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+        run: |
+          sed -i '' '/--action_env=BAZEL_LINKLIBS=-l%:libc++.a:-l%:libc++abi.a/d' .bazelrc
+
       - name: Add Python 3.9 to PATH
         if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: echo "/usr/local/opt/python@3.9/bin" >> $GITHUB_PATH
@@ -56,9 +61,18 @@ jobs:
       - name: Build envoy-static
         if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.15
+          export MACOSX_DEPLOYMENT_TARGET=14.5
           # locate bazelisk
-          BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
+          export BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
+
+          XCODE_DEFAULT_VERSION=16.1
+          XCODE_VERSION="${XCODE_VERSION:-${XCODE_DEFAULT_VERSION}}"
+          if [[ -n "$XCODE_VERSION" ]]; then
+            sudo xcode-select --switch "/Applications/Xcode_${XCODE_VERSION}.app"
+          fi
+
+          # Get LLVM path for libc++ libraries
+          LLVM_PATH=$(brew --prefix llvm@18)
 
           # base Bazel flags from the Homebrew formula
           ARGS=(
@@ -72,14 +86,10 @@ jobs:
             --action_env=CXX=${CXX}
             --host_action_env=CC=${CC}
             --host_action_env=CXX=${CXX}
+            --linkopt=-L${LLVM_PATH}/lib/c++
+            --action_env=BAZEL_LINKOPTS=-L${LLVM_PATH}/lib/c++
             --macos_minimum_os=${MACOSX_DEPLOYMENT_TARGET}
           )
-
-          # if Clang ≥17, disable the new missing-template-arg-list warning
-          CLANG_MAJOR=$(clang --version | sed -n 's/.*clang version \([0-9]\+\).*/\1/p')
-          if [ "$CLANG_MAJOR" -ge 17 ]; then
-            ARGS+=(--copt=-Wno-missing-template-arg-list-after-template-kw)
-          fi
 
           # build the static binary
           $BAZELISK build "${ARGS[@]}" //source/exe:envoy-static
