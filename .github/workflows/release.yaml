@@ -17,7 +17,7 @@ defaults:
 
 jobs:
   build-envoy-macos:
-    runs-on: macos-15-xlarge
+    runs-on: macos-latest
     name: "Build Envoy® for MacOS Apple Silicon"
     # steps are skipped instead of skipping job as if we skipped the job, the
     # archive job would not run.
