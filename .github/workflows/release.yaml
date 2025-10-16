@@ -175,7 +175,7 @@ jobs:
         include:
           - os: ubuntu-24.04
             arch: amd64
-          - os: macos-15-xlarge
+          - os: macos-latest
             arch: arm64
 
     steps:
