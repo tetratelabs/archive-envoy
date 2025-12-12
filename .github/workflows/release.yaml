@@ -19,6 +19,10 @@ jobs:
   build-envoy-macos:
     runs-on: macos-15-xlarge
     name: "Build Envoy® for MacOS Apple Silicon"
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     # steps are skipped instead of skipping job as if we skipped the job, the
     # archive job would not run.
     steps:
@@ -100,6 +104,11 @@ jobs:
           mkdir bin
           mv bazel-bin/source/exe/envoy-static bin/envoy
           chmod +x bin/envoy
+
+      - name: Publish attestation to GitHub
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: bin/envoy
 
       - name: Upload Envoy binary
         if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
