@@ -34,40 +34,12 @@ jobs:
           ref: ${{ github.event.inputs.version }}
           fetch-depth: 0
 
-      - name: Install build-time tools
-        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
-        run: |
-          brew update
-          brew install automake cmake libtool ninja bazelisk python@3.9 coreutils llvm@18
-          echo "$(brew --prefix coreutils)/libexec/gnubin" >> $GITHUB_PATH
-
-      - name: Set up LLVM-18 clang/clang++ on PATH
-        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
-        run: |
-          llvm_path=$(brew --prefix llvm@18)
-          echo "$llvm_path/bin" >> $GITHUB_PATH
-          echo "CC=$llvm_path/bin/clang" >> $GITHUB_ENV
-          echo "CXX=$llvm_path/bin/clang++" >> $GITHUB_ENV
-
-      - name: Remove `BAZEL_LINKLIBS` from .bazelrc to make it compatible with macOS the brew installed LLVM.
-        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
-        run: |
-          sed -i '' '/--action_env=BAZEL_LINKLIBS=-l%:libc++.a:-l%:libc++abi.a/d' .bazelrc
-
-      - name: Add Python 3.9 to PATH
-        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
-        run: echo "/usr/local/opt/python@3.9/bin" >> $GITHUB_PATH
-
-      - name: Write current source version
-        if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
-        run: python3 tools/github/write_current_source_version.py --skip_error_in_git
+      - uses: bazel-contrib/setup-bazel@0.18.0
 
       - name: Build envoy-static
         if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
         run: |
           export MACOSX_DEPLOYMENT_TARGET=14.5
-          # locate bazelisk
-          export BAZELISK=$(brew --prefix bazelisk)/bin/bazelisk
 
           XCODE_DEFAULT_VERSION=16.1
           XCODE_VERSION="${XCODE_VERSION:-${XCODE_DEFAULT_VERSION}}"
@@ -75,30 +47,17 @@ jobs:
             sudo xcode-select --switch "/Applications/Xcode_${XCODE_VERSION}.app"
           fi
 
-          # Get LLVM path for libc++ libraries
-          LLVM_CXX_LIB_PATH=$(brew --prefix llvm@18)/lib/c++
-
           # base Bazel flags from the Homebrew formula
           ARGS=(
             --compilation_mode=opt
             --curses=no
             --verbose_failures
             --define=wasm=enabled
-            --copt=-Wno-unused-but-set-variable
-            --config=clang
-            --action_env=CC=${CC}
-            --action_env=CXX=${CXX}
-            --host_action_env=CC=${CC}
-            --host_action_env=CXX=${CXX}
-            --linkopt=${LLVM_CXX_LIB_PATH}/libc++.a
-            --linkopt=${LLVM_CXX_LIB_PATH}/libc++abi.a
-            --action_env=BAZEL_LINKOPTS=${LLVM_CXX_LIB_PATH}/libc++.a
-            --action_env=BAZEL_LINKOPTS=${LLVM_CXX_LIB_PATH}/libc++abi.a
             --macos_minimum_os=${MACOSX_DEPLOYMENT_TARGET}
           )
 
           # build the static binary
-          $BAZELISK build "${ARGS[@]}" //source/exe:envoy-static
+          bazel build "${ARGS[@]}" //source/exe:envoy-static
           
           # rename it
           mkdir bin
