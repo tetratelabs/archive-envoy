@@ -25,16 +25,15 @@ set -ue
 # Notably, these are tarballs and a release version list in JSON format. Platforms which fail for
 # any reason are not included in the JSON list.
 #
-# IMPORTANT: "_debug" is not used when looking up the release https://github.com/$1/releases/tag/$2
+# IMPORTANT: "_debug" is not used when looking up the source release.
 # Ex. If $1=envoyproxy/envoy $2=v1.18.3_debug, the source release is...
-# https://github.com/envoyproxy/envoy/releases/tag/v1.18.3_debug not
 # https://github.com/envoyproxy/envoy/releases/tag/v1.18.3
 #
-# The "_debug" suffix is only used to allow the tar script to separate debug files from production.
+# The "_debug" suffix is only used to allow the car script to separate debug files from production.
 #
 # This runs a car script for each OS and architecture to create $name-$version-$os-$arch.tar.xz
 # The car script name includes the basename of $1. If $1=envoyproxy/envoy: car_envoy.sh
-# The arguments passed to the tar script are: $version $os $arch $op
+# The arguments passed to the car script are: $version $sourceVersion $os $arch $op $directory
 # This resulting tarball must include at least a working binary. Failures are ignored
 #
 # Notes:
@@ -44,13 +43,9 @@ set -ue
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}
 name=$(basename "${sourceGitHubRepository}") || exit 1
 case "${2:-}" in
-v[0-9]*[0-9]_debug)
+v[0-9]*[0-9]_debug|v[0-9]*[0-9])
   version=$2
-  sourceVersion=$(echo "${2}" | sed 's/_debug//g')
-  ;;
-v[0-9]*[0-9])
-  version=$2
-  sourceVersion=$2
+  sourceVersion=${version%_debug}
   ;;
 *) echo >&2 "version is required. Ex v1.18.3 or v1.18.3_debug" && exit 1 ;;
 esac
@@ -125,7 +120,7 @@ for os in darwin linux; do
     else
       # permit a version to fail rather than duplicating maintenance here and in archive_release.sh
       set +e
-      "${carScript}" "${version}" "${os}" "${arch}" "${carMode}" "${version}/${dist}"
+      "${carScript}" "${version}" "${sourceVersion}" "${os}" "${arch}" "${carMode}" "${version}/${dist}"
       rc=$?
       set -e
       [ "${op}" = 'check' ] || [ "${rc}" != '0' ] && continue

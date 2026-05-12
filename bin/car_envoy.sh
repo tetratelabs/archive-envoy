@@ -21,11 +21,12 @@ set -ue
 #
 #  * The first parameter ($1) is the release version. Ex. v1.18.3 or v1.18.3_debug.
 #    * The "_debug" suffix toggles if the binary is stripped and if debug symbols are included.
-#  * The second parameter ($2) is the operating system: darwin or linux
-#  * The third parameter ($3) is the architecture: amd64 or arm64
-#  * The fourth parameter ($4) is the `car` mode: extract or list
+#  * The second parameter ($2) is the source release version. Ex. v1.18.3
+#  * The third parameter ($3) is the operating system: darwin or linux
+#  * The fourth parameter ($4) is the architecture: amd64 or arm64
+#  * The fifth parameter ($5) is the `car` mode: extract or list
 #    * list exits successfully if the expected files are available in OCI layers
-#  * The fifth parameter ($5) is the directory to extract files into
+#  * The sixth parameter ($6) is the directory to extract files into
 #
 # The result is envoy-$version-$os-$arch which contents appropriate per platform
 #  Ex. envoy-v1.18.3-linux-amd64/bin/envoy
@@ -42,10 +43,11 @@ gocar="go run github.com/tetratelabs/car/cmd/car@5277562d927e44ed994abe15d07f04e
 
 # Verify args
 version=${1?version is required. Ex v1.18.3 or v1.18.3_debug}
-os=${2?os is required: darwin or linux}
-arch=${3?arch is required: amd64 or arm64}
-mode=${4?mode is required: list or extract}
-directory=${5:-}
+sourceVersion=${2?sourceVersion is required. Ex v1.18.3}
+os=${3?os is required: darwin or linux}
+arch=${4?arch is required: amd64 or arm64}
+mode=${5?mode is required: list or extract}
+directory=${6:-}
 
 platform=${os}/${arch}
 case ${version} in v[0-9]*[0-9]_debug) debug="1" ;; esac
@@ -106,7 +108,15 @@ darwin) # https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy.rb
 linux)
   files="usr/local/bin/envoy"
   if [ "${debug:-}" = '1' ]; then
-    reference=envoyproxy/envoy-debug:$(echo "${version}" | sed 's/_debug//g')
+    case ${sourceVersion} in
+    # Legacy debug repository tags stop after v1.34.4, except v1.35.0.
+    v1.1[6-9].*|v1.2[0-9].*|v1.3[0-3].*|v1.34.[0-4]|v1.35.0)
+      reference=envoyproxy/envoy-debug:${sourceVersion}
+      ;;
+    *)
+      reference=envoyproxy/envoy:debug-${sourceVersion}
+      ;;
+    esac
     files="$files usr/local/bin/envoy.dwp"
   else
     reference=envoyproxy/envoy:${version}
