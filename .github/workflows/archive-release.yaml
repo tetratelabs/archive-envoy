@@ -1,0 +1,75 @@
+# yamllint --format github .github/workflows/archive-release.yaml
+---
+name: "archive-release"
+
+on:  # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version tag"
+        type: string
+        required: true
+      include_macos:
+        description: "Include the macOS artifact"
+        type: boolean
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish:
+    name: "publish"
+    # Hard-coding an LTS means maintenance,
+    # but only once each 2 years!
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Install Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: "Download macOS Apple Silicon binary"
+        if: ${{ inputs.include_macos }}
+        uses: actions/download-artifact@v4
+        with:
+          name: "envoy-${{ inputs.version }}-\
+            darwin-arm64"
+          path: "${{ inputs.version }}/envoy-\
+            ${{ inputs.version }}-darwin-arm64/bin"
+
+      - name: "Mark macOS binary as executable"
+        if: ${{ inputs.include_macos }}
+        run: >-
+          chmod +x
+          "${VERSION}"/envoy-"${VERSION}"-darwin-arm64/bin/envoy
+
+      - name: "Archive Envoy Release"
+        run: >-
+          ./bin/archive_release_version.sh
+          envoyproxy/envoy "${VERSION}"
+
+      - name: "Upload GitHub Release"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          files: ${{ inputs.version }}/*
+
+      - name: "Trigger Netlify deploy"
+        if: >-
+          ${{ env.NETLIFY_AUTH_TOKEN != ''
+          && env.NETLIFY_SITE_ID != '' }}
+        run: >-
+          curl -s -X POST
+          "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/builds"
+          -H "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}"
