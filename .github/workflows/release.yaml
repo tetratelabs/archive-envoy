@@ -18,7 +18,7 @@ defaults:
 jobs:
   build-envoy-macos:
     runs-on: macos-15-xlarge
-    name: "Build Envoy® for MacOS Apple Silicon"
+    name: "build envoy (macos)"
     permissions:
       contents: read
       id-token: write
@@ -89,122 +89,27 @@ jobs:
           name: envoy-${{ github.event.inputs.version }}-darwin-arm64
           path: bin/envoy
 
-  archive-linux-debug:
-    name: "Archive Envoy® Linux Debug Release"
-    # Debug Linux publishing should not wait for the macOS debug build.
-    if: ${{ endsWith(github.event.inputs.version, '_debug') }}
-    runs-on: ubuntu-24.04 # Hard-coding an LTS means maintenance, but only once each 2 years!
-    permissions:
-      contents: write
-    env:
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
+  archive-linux:
+    name: "archive (linux)"
+    uses: ./.github/workflows/archive-release.yaml
+    with:
+      version: ${{ github.event.inputs.version }}
+      include_macos: false
+    secrets: inherit
 
-      - name: "Install Go" # So we can run a patched car without needing to release a new version.
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-
-      - name: "Install netlify-cli"
-        run: |
-          npm install --save-dev netlify-cli
-
-      - name: "Archive Envoy Release"
-        run: ./bin/archive_release_version.sh envoyproxy/envoy "${{ github.event.inputs.version }}"
-
-      - name: "Upload GitHub Release"
-        uses: ncipollo/release-action@v1
-        with: # TODO: This would be easier to troubleshoot if used `gh` commands like func-e does.
-          artifacts: "${{ github.event.inputs.version }}/*"
-          allowUpdates: true
-          generateReleaseNotes: false
-          omitBody: true
-          tag: ${{ github.event.inputs.version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: "Trigger Netlify deploy" # The above upload won't create a GHA trigger, so we make one directly
-        if: ${{ env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != '' }}
-        run: ./node_modules/.bin/netlify deploy --message="deploy ${TAG}" --trigger --auth="${NETLIFY_AUTH_TOKEN}" --site="${NETLIFY_SITE_ID}"
-
-  archive:
-    name: "Archive Envoy® Release"
+  archive-macos:
+    name: "archive (macos)"
     needs: build-envoy-macos
-    # This path publishes macOS artifacts, so it only runs after a macOS build succeeds.
-    if: ${{ always() && needs.build-envoy-macos.result == 'success' }}
-    runs-on: ubuntu-24.04 # Hard-coding an LTS means maintenance, but only once each 2 years!
-    permissions:
-      contents: write
-    env:
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
+    uses: ./.github/workflows/archive-release.yaml
+    with:
+      version: ${{ github.event.inputs.version }}
+      include_macos: true
+    secrets: inherit
 
-      - name: "Install Go" # So we can run a patched car without needing to release a new version.
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-
-      - name: "Install netlify-cli"
-        run: |
-          npm install --save-dev netlify-cli
-
-      - name: "Download macOS Apple Silicon binary"
-        uses: actions/download-artifact@v4
-        with:
-          name: envoy-${{ github.event.inputs.version }}-darwin-arm64
-          path: ${{ github.event.inputs.version }}/envoy-${{ github.event.inputs.version }}-darwin-arm64/bin
-
-      - name: "Mark macOS Apple Silicon binary as executable"
-        # https://github.com/actions/upload-artifact/issues/38
-        # https://github.com/actions/download-artifact/issues/14
-        run: chmod +x ${{ github.event.inputs.version }}/envoy-${{ github.event.inputs.version }}-darwin-arm64/bin/envoy
-
-      - name: "Archive Envoy Release"
-        run: ./bin/archive_release_version.sh envoyproxy/envoy "${{ github.event.inputs.version }}"
-
-      - name: "Upload GitHub Release"
-        uses: ncipollo/release-action@v1
-        with: # TODO: This would be easier to troubleshoot if used `gh` commands like func-e does.
-          artifacts: "${{ github.event.inputs.version }}/*"
-          allowUpdates: true
-          generateReleaseNotes: false
-          omitBody: true
-          tag: ${{ github.event.inputs.version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: "Trigger Netlify deploy" # The above upload won't create a GHA trigger, so we make one directly
-        if: ${{ env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != '' }}
-        run: ./node_modules/.bin/netlify deploy --message="deploy ${TAG}" --trigger --auth="${NETLIFY_AUTH_TOKEN}" --site="${NETLIFY_SITE_ID}"
-
-  # These smoke tests run after publishing so release uploads are not blocked by platform-specific test failures.
-  test-linux-debug:
-    name: "Test Envoy® Debug Archive (ubuntu-24.04)"
-    needs: archive-linux-debug
-    # This validates the Linux debug fallback without waiting for macOS.
-    if: ${{ always() && needs.archive-linux-debug.result == 'success' }}
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: "Extract `envoy` binary from GitHub release assets"
-        run:
-          | # https://docs.github.com/en/actions/learn-github-actions/environment-variables
-          gh release -R "${GITHUB_REPOSITORY}" download "${{ github.event.inputs.version }}" -p "*-linux-amd64.tar.xz"
-          tar --strip-components=2 -xpJf ./*.tar.xz && rm ./*.tar.xz
-        env: # authenticate release downloads in case it is a draft (not public)
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - run: ./envoy --version
-
+  # Smoke tests run after publishing so uploads are not blocked by test failures.
   test-linux:
-    name: "Test Envoy® Archive (ubuntu-24.04)"
-    needs: archive
-    # Debug Linux is tested as soon as its independent archive is published.
-    if: ${{ always() && !endsWith(github.event.inputs.version, '_debug') && needs.archive.result == 'success' }}
+    name: "test (linux)"
+    needs: archive-linux
     runs-on: ubuntu-24.04
 
     steps:
@@ -219,12 +124,8 @@ jobs:
       - run: ./envoy --version
 
   test-macos:
-    name: "Test Envoy® Archive (macos-latest)"
-    needs:
-      - archive
-      - build-envoy-macos
-    # The macOS smoke test only makes sense when the macOS artifact was published.
-    if: ${{ always() && needs.archive.result == 'success' && needs.build-envoy-macos.result == 'success' }}
+    name: "test (macos)"
+    needs: archive-macos
     runs-on: macos-latest
 
     steps:
