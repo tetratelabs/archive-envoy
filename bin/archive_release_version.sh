@@ -1,18 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright 2021 Tetrate
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright Archive Envoy
+# SPDX-License-Identifier: Apache-2.0
+# The full text of the Apache license is available in the LICENSE file at
+# the root of the repo.
 
 set -ue
 
@@ -43,6 +34,11 @@ set -ue
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}
 name=$(basename "${sourceGitHubRepository}") || exit 1
 case "${2:-}" in
+dev|dev_debug)
+  [ -z "${ENVOY_SHA:-}" ] && echo >&2 "ENVOY_SHA required for dev builds" && exit 1
+  version=$2
+  sourceVersion=${version%_debug}
+  ;;
 v[0-9]*[0-9]_debug|v[0-9]*[0-9])
   version=$2
   sourceVersion=${version%_debug}
@@ -83,6 +79,14 @@ authorizationHeader="Authorization: Bearer ${githubToken}"
 # Setup defaults that make archival consistent between runs
 export TZ=UTC
 
+# Dev builds resolve the release date from the commit
+if [ -n "${ENVOY_SHA:-}" ]; then
+  envoy_sha=${ENVOY_SHA}
+  RELEASE_DATE=$(${curl} ${githubToken:+ -H "${authorizationHeader}"} \
+    "https://api.github.com/repos/${sourceGitHubRepository}/commits/${envoy_sha}" |
+    jq -er '.commit.committer.date' | cut -c1-10) || exit 1
+else
+
 # Fetch the last page number of releases (example value: 7), so we can get all of the releases.
 # To get the last page, we send a HEAD request to "https://api.github.com/repos/${sourceGitHubRepository}/releases",
 # then "grep" the "link" header value.
@@ -104,14 +108,24 @@ if [ "${RELEASE_DATE}" = "null" ]; then
   echo >&2 "version ${sourceVersion} has not yet been released" && exit 1
 fi
 
+fi
+
 export RELEASE_DATE
 tarxz="${tar} --numeric-owner --owner 65534 --group 65534 --mtime ${RELEASE_DATE?-ex. 2021-05-11} -cpJf"
 
 echo "archiving ${sourceGitHubRepository} ${version} released on ${RELEASE_DATE}"
 # archive all dists for the version, generating https://archive.tetratelabs.io/release-versions-schema.json incrementally
 releaseVersions="{}"
+archiveRepo=${GITHUB_REPOSITORY:-tetratelabs/archive-envoy}
+
+# ARCHIVE_OS filters to a single OS when set (used by split lanes).
+archiveOS=${ARCHIVE_OS:-}
+
 for os in darwin linux; do
-  for arch in amd64 arm64; do
+  [ -n "${archiveOS}" ] && [ "${os}" != "${archiveOS}" ] && continue
+  for arch in arm64 amd64; do
+    [ "${os}" = 'darwin' ] && [ "${arch}" = 'amd64' ] && continue
+
     dist="envoy-${version}-${os}-${arch}"
     echo "using dist: ${dist}"
 
@@ -127,7 +141,6 @@ for os in darwin linux; do
 
       if ! [ -d "${version}/${dist}" ]; then
         echo >&2 "expected to extract files for ${os}/${arch}" && exit 1
-        exit 1
       fi
     fi
 
@@ -137,11 +150,19 @@ for os in darwin linux; do
     rm -rf "${version}/${dist}"
     s=$(sha256sum "${version}/${archive}" | awk '{print $1}') || exit 1
 
-    # strip the v off the tag name more shell portable than ${version:1}
-    v=$(echo "${version}" | cut -c2-100)
     # use printf because jq doesn't support parameterizing the key names, only the key values
-    nextReleaseVersion=$(printf '{"latestVersion": "%s", "versions": { "%s": {"releaseDate": "%s", "tarballs": {"%s": "%s"}}}, "sha256sums": {"%s": "%s"}}' \
-      "$v" "$v" "${RELEASE_DATE}" "${os}/${arch}" "${archiveBaseUrl}/${archive}" "${archive}" "$s")
+    case ${version} in
+    dev|dev_debug)
+      nextReleaseVersion=$(printf '{"dev": {"releaseDate": "%s", "commitSha": "%s", "tarballs": {"%s": "%s"}}, "sha256sums": {"%s": "%s"}}' \
+        "${RELEASE_DATE}" "${envoy_sha}" "${os}/${arch}" "${archiveBaseUrl}/${archive}" "${archive}" "$s")
+      ;;
+    *)
+      # strip the v off the tag name more shell portable than ${version:1}
+      v=$(echo "${version}" | cut -c2-100)
+      nextReleaseVersion=$(printf '{"latestVersion": "%s", "versions": { "%s": {"releaseDate": "%s", "tarballs": {"%s": "%s"}}}, "sha256sums": {"%s": "%s"}}' \
+        "$v" "$v" "${RELEASE_DATE}" "${os}/${arch}" "${archiveBaseUrl}/${archive}" "${archive}" "$s")
+      ;;
+    esac
     # merge the pending releaseVersions json to include the next dist
     releaseVersions=$(echo "${releaseVersions}" "${nextReleaseVersion}" | jq -Sse '.[0] * .[1]')
   done
@@ -150,8 +171,22 @@ done
 [ "${op}" = 'check' ] && exit 0
 [ "${releaseVersions}" = '{}' ] && exit 1
 
-# reorder top-level keys so that versions appear before sha256sums
-releaseVersions=$(echo "${releaseVersions}" | jq '{latestVersion: .latestVersion, versions: .versions, sha256sums: .sha256sums}')
+# Seed from existing release JSON so split lanes merge into one file.
+# Done after archiving so the second lane to finish picks up the first lane's results.
+existing=$(gh release download "${version}" -R "${archiveRepo}" -p "${name}-${version}.json" -O - 2>/dev/null) || true
+if [ -n "${existing}" ]; then
+  releaseVersions=$(echo "${existing}" "${releaseVersions}" | jq -Sse '.[0] * .[1]')
+fi
+
+case ${version} in
+dev|dev_debug)
+  releaseVersions=$(echo "${releaseVersions}" | jq '{dev, sha256sums}')
+  ;;
+*)
+  # reorder top-level keys so that versions appear before sha256sums
+  releaseVersions=$(echo "${releaseVersions}" | jq '{latestVersion, versions, sha256sums}')
+  ;;
+esac
 # Write the versions file and reset file date as if they were published at the same time
 echo "${releaseVersions}" >"${version}/${name}-${version}.json"
 touchDate=$(echo "${RELEASE_DATE}"|sed 's/-//g')0000

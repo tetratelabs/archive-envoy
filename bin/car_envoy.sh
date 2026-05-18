@@ -1,18 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright 2021 Tetrate
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright Archive Envoy
+# SPDX-License-Identifier: Apache-2.0
+# The full text of the Apache license is available in the LICENSE file at
+# the root of the repo.
 
 set -ue
 
@@ -50,7 +41,7 @@ mode=${5?mode is required: list or extract}
 directory=${6:-}
 
 platform=${os}/${arch}
-case ${version} in v[0-9]*[0-9]_debug) debug="1" ;; esac
+case ${version} in v[0-9]*[0-9]_debug|dev_debug) debug="1" ;; esac
 
 if [ "${debug:-}" = '1' ] && [ "${os}" != 'linux' ]; then
   echo >&2 "debug not yet supported on ${os}" && exit 1
@@ -107,7 +98,16 @@ darwin) # https://github.com/Homebrew/homebrew-core/blob/master/Formula/envoy.rb
   ;;
 linux)
   files="usr/local/bin/envoy"
-  if [ "${debug:-}" = '1' ]; then
+  # Tags like dev-<SHA> and debug-dev-<SHA> are published by Envoy's "Publish & verify" workflow:
+  # https://github.com/envoyproxy/envoy/blob/main/.github/workflows/envoy-publish.yml
+  if [ -n "${ENVOY_SHA:-}" ]; then
+    if [ "${debug:-}" = '1' ]; then
+      reference=envoyproxy/envoy:debug-dev-${ENVOY_SHA}
+      files="$files usr/local/bin/envoy.dwp"
+    else
+      reference=envoyproxy/envoy:dev-${ENVOY_SHA}
+    fi
+  elif [ "${debug:-}" = '1' ]; then
     case ${sourceVersion} in
     # Legacy debug repository tags stop after v1.34.4, except v1.35.0.
     v1.1[6-9].*|v1.2[0-9].*|v1.3[0-3].*|v1.34.[0-4]|v1.35.0)

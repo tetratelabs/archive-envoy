@@ -9,10 +9,18 @@ on:  # yamllint disable-line rule:truthy
         description: "Release version tag"
         type: string
         required: true
-      include_macos:
-        description: "Include the macOS artifact"
-        type: boolean
+      os:
+        description: "OS to archive (linux or darwin)"
+        type: string
         required: true
+      envoy_sha:
+        description: "Envoy commit SHA for dev builds"
+        type: string
+        default: ""
+      prerelease:
+        description: "Mark as prerelease and overwrite existing"
+        type: boolean
+        default: false
 
 defaults:
   run:
@@ -27,9 +35,11 @@ jobs:
     permissions:
       contents: write
     env:
+      GH_TOKEN: ${{ github.token }}
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
       NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
       VERSION: ${{ inputs.version }}
+      ENVOY_SHA: ${{ inputs.envoy_sha }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v4
@@ -40,7 +50,7 @@ jobs:
           go-version: "1.24"
 
       - name: "Download macOS Apple Silicon binary"
-        if: ${{ inputs.include_macos }}
+        if: inputs.os == 'darwin'
         uses: actions/download-artifact@v4
         with:
           name: "envoy-${{ inputs.version }}-\
@@ -49,12 +59,14 @@ jobs:
             ${{ inputs.version }}-darwin-arm64/bin"
 
       - name: "Mark macOS binary as executable"
-        if: ${{ inputs.include_macos }}
+        if: inputs.os == 'darwin'
         run: >-
           chmod +x
           "${VERSION}"/envoy-"${VERSION}"-darwin-arm64/bin/envoy
 
       - name: "Archive Envoy Release"
+        env:
+          ARCHIVE_OS: ${{ inputs.os }}
         run: >-
           ./bin/archive_release_version.sh
           envoyproxy/envoy "${VERSION}"
@@ -63,7 +75,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.version }}
+          prerelease: ${{ inputs.prerelease }}
           files: ${{ inputs.version }}/*
+          body: >-
+            ${{ inputs.envoy_sha != ''
+            && format('envoy_sha={0}', inputs.envoy_sha)
+            || '' }}
 
       - name: "Trigger Netlify deploy"
         if: >-

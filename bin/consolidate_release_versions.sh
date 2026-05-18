@@ -1,18 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright 2021 Tetrate
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright Archive Envoy
+# SPDX-License-Identifier: Apache-2.0
+# The full text of the Apache license is available in the LICENSE file at
+# the root of the repo.
 
 set -ue
 
@@ -45,18 +36,20 @@ redirectsTo="https://github.com/${githubRepo}/releases/download"
 # then "grep" the "link" header value.
 # Reference: https://docs.github.com/en/rest/guides/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers.
 lastReleasePage=$(${curl}I ${githubToken:+ -H "${authorizationHeader}"} "https://api.github.com/repos/${githubRepo}/releases" |
-  grep -Eo 'page=[0-9]+' | awk 'NR==2' | cut -d'=' -f2) || exit 1
+  grep -Eo 'page=[0-9]+' | awk 'NR==2' | cut -d'=' -f2)
+lastReleasePage=${lastReleasePage:-1}
 
 # archive all dists for the version, generating the envoy-versions.json format incrementally
 releaseVersions="{}"
 
 for ((page = 1; page <= lastReleasePage; page++)); do
+  # dev and dev_debug are prereleases, so they need explicit name matching to pass the filter.
   versions=$(${curl} ${githubToken:+ -H "${authorizationHeader}"} "https://api.github.com/repos/${githubRepo}/releases?page=${page}" |
-    jq -er ".|map(select(.prerelease == false and .draft == false))|.[]|.name" | sort -n) || exit 1
+    jq -er ".|map(select((.prerelease == false and .draft == false) or .name == \"dev\" or .name == \"dev_debug\"))|.[]|.name" | sort -n) || exit 1
 
   for version in ${versions}; do
     # Exclusively handle debug.
-    case ${version} in v[0-9]*[0-9]_debug) nextDebugVersion=1 ;; *) unset nextDebugVersion;; esac
+    case ${version} in v[0-9]*[0-9]_debug|dev_debug) nextDebugVersion=1 ;; *) unset nextDebugVersion;; esac
     [ "${debugVersion:-}" != "${nextDebugVersion:-}" ] && continue
 
     versionsUrl="${redirectsTo}/${version}/envoy-${version}.json"
@@ -69,4 +62,4 @@ done
 # reorder top-level keys so that versions appear before sha256sums
 echo "${releaseVersions}" |\
   jq '. | .latestVersion = ( .versions | keys | sort | .[-1] )' |\
-  jq '{latestVersion: .latestVersion, versions: .versions, sha256sums: .sha256sums}'
+  jq '{latestVersion, versions, sha256sums} + (if .dev then {dev} else {} end)'
