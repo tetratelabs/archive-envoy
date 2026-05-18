@@ -2,6 +2,10 @@
 command = "./build.sh https://archive.tetratelabs.io/envoy/download"
 publish = "public"
 
+# tetratelabs org only allows up to 366 day expiration of tokens, even if read-only.
+# Before 2027-05-14, generate a read-only token for tetratelabs/archive-envoy here:
+# https://github.com/settings/personal-access-tokens Then, update GITHUB_TOKEN here:
+# https://app.netlify.com/projects/archive-envoy/configuration/env#environment-variables
 [context]
 [context.branch-deploy]
 command = "./build.sh https://archive.tetratelabs.io/envoy/download"

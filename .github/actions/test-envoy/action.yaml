@@ -1,0 +1,20 @@
+name: "Test Envoy binary"
+description: "Download a release tarball and verify the binary runs"
+inputs:
+  version:
+    description: "Release tag to download"
+    required: true
+  pattern:
+    description: "Asset glob pattern"
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release -R "${GITHUB_REPOSITORY}" download "${{ inputs.version }}" -p "${{ inputs.pattern }}"
+        tar --strip-components=2 -xpJf ./*.tar.xz && rm ./*.tar.xz
+    - shell: bash
+      run: ./envoy --version
