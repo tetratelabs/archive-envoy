@@ -8,6 +8,12 @@ which adheres to the [release versions schema](https://archive.tetratelabs.io/re
 Specifically, releases include a tarball per platform with exactly the same binary as what users would have, if
 they used Docker or Homebrew instructions from here: https://www.envoyproxy.io/docs/envoy/latest/start/install
 
+## Dev releases
+A [nightly workflow](.github/workflows/nightly.yaml) builds dev tarballs from Envoy's `main` branch daily.
+These appear as a top-level `"dev"` key in [envoy-versions.json](https://archive.tetratelabs.io/envoy/envoy-versions.json)
+and [envoy-versions_debug.json](https://archive.tetratelabs.io/envoy/envoy-versions_debug.json), alongside the existing
+`"versions"` key. Consumers that don't read `"dev"` are unaffected.
+
 ## Standard releases
 A standard release includes `envoy-$version-$os-$arch.tar.xz` for every platform, including a production, non_debug,
 binary.

@@ -1,0 +1,75 @@
+# yamllint --format github .github/workflows/build-macos.yaml
+---
+name: "build-macos"
+
+on:  # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to check out (tag or SHA)"
+        type: string
+        required: true
+      compilation_mode:
+        description: "Bazel compilation mode (opt or dbg)"
+        type: string
+        default: "opt"
+      artifact_name:
+        description: "Name for the uploaded artifact"
+        type: string
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: "build"
+    runs-on: macos-15-xlarge
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: "Check out Envoy source"
+        uses: actions/checkout@v4
+        with:
+          repository: envoyproxy/envoy
+          ref: ${{ inputs.ref }}
+
+      - uses: bazel-contrib/setup-bazel@0.18.0
+
+      - name: "Configure GitHub auth for Bazel downloads"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf 'machine github.com\nlogin x-access-token\npassword %s\n' "${GITHUB_TOKEN}" >> ~/.netrc
+          printf 'machine codeload.github.com\nlogin x-access-token\npassword %s\n' "${GITHUB_TOKEN}" >> ~/.netrc
+          chmod 600 ~/.netrc
+
+      - name: "Build envoy-static"
+        run: |
+          ARGS=(
+            "--compilation_mode=${{ inputs.compilation_mode }}"
+            --curses=no
+            --verbose_failures
+            "--linkopt=-Wl,-framework,SystemConfiguration"
+          )
+
+          bazel build "${ARGS[@]}" //source/exe:envoy-static
+
+          mkdir -p bin
+          mv bazel-bin/source/exe/envoy-static bin/envoy
+          chmod u+w bin/envoy
+          strip bin/envoy
+
+      - name: "Publish attestation to GitHub"
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: bin/envoy
+
+      - name: "Upload Envoy binary"
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: bin/envoy
