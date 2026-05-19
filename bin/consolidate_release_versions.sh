@@ -61,5 +61,5 @@ done
 
 # reorder top-level keys so that versions appear before sha256sums
 echo "${releaseVersions}" |\
-  jq '. | .latestVersion = ( .versions | keys | sort | .[-1] )' |\
+  jq '. | .latestVersion = ( .versions | keys | sort_by(split(".") | map(tonumber)) | last )' |\
   jq '{latestVersion, versions, sha256sums} + (if .dev then {dev} else {} end)'
