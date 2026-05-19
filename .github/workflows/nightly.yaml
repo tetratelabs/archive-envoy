@@ -96,23 +96,28 @@ jobs:
     secrets: inherit
 
   test-linux:
-    name: "test (linux)"
+    name: "test (linux ${{ matrix.arch }})"
     needs: archive-linux
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/test-envoy
         with:
           version: ${{ inputs.version }}
-          pattern: "*-linux-amd64.tar.xz"
 
   test-macos:
     name: "test (macos)"
     needs: archive-macos
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15-xlarge
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/test-envoy
         with:
           version: ${{ inputs.version }}
-          pattern: "*-darwin-arm64.tar.xz"
