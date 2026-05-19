@@ -4,9 +4,6 @@ inputs:
   version:
     description: "Release tag to download"
     required: true
-  pattern:
-    description: "Asset glob pattern"
-    required: true
 runs:
   using: composite
   steps:
@@ -14,7 +11,17 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        gh release -R "${GITHUB_REPOSITORY}" download "${{ inputs.version }}" -p "${{ inputs.pattern }}"
+        case "${{ runner.os }}" in
+          Linux)  os=linux  ;;
+          macOS)  os=darwin ;;
+        esac
+        case "${{ runner.arch }}" in
+          X64)    arch=amd64 ;;
+          ARM64)  arch=arm64 ;;
+        esac
+        pattern="*-${os}-${arch}.tar.xz"
+        gh release -R "${GITHUB_REPOSITORY}" download \
+          "${{ inputs.version }}" -p "${pattern}"
         tar --strip-components=2 -xpJf ./*.tar.xz && rm ./*.tar.xz
     - shell: bash
       run: ./envoy --version
