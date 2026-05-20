@@ -32,12 +32,12 @@ jobs:
       attestations: write
     steps:
       - name: "Check out Envoy source"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: envoyproxy/envoy
           ref: ${{ inputs.ref }}
 
-      - uses: bazel-contrib/setup-bazel@0.18.0
+      - uses: bazel-contrib/setup-bazel@0.19.0
 
       - name: "Configure GitHub auth for Bazel downloads"
         env:
@@ -64,12 +64,12 @@ jobs:
           strip bin/envoy
 
       - name: "Publish attestation to GitHub"
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: bin/envoy
 
       - name: "Upload Envoy binary"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
           path: bin/envoy

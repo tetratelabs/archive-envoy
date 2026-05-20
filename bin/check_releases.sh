@@ -1,57 +1,72 @@
 #!/usr/bin/env bash
 
-# Copyright Archive Envoy
+# Copyright archive-envoy contributors
 # SPDX-License-Identifier: Apache-2.0
-# The full text of the Apache license is available in the LICENSE file at
-# the root of the repo.
 
 set -ue
 
-# This checks upstrean ${sourceGitHubRepository} releases and compares it
+# This checks upstream ${sourceGitHubRepository} releases and compares them
 # with the released versions on https://archive.tetratelabs.io/envoy/envoy-versions.json.
+# When a new version is found and its Docker image is available, it triggers
+# the release workflow for both production and debug builds.
+#
+# Fetches the 10 most recent releases via GraphQL (one API call) because
+# Envoy batches at most 6 patch releases on the same day.
 
-# Ensure we have tools we need installed
 curl --version >/dev/null
 jq --version >/dev/null
 gh --version >/dev/null
 
 sourceGitHubRepository=${1?sourceGitHubRepository is required. ex envoyproxy/envoy}
 targetGitHubRepository=${2?targetGitHubRepository is required. ex tetratelabs/archive-envoy}
-lowestVersion=${3?lowestVersion is required. ex 12.0.0}
 
-curl="curl -fsSL"
+sourceOwner=${sourceGitHubRepository%%/*}
+sourceName=${sourceGitHubRepository##*/}
 
-# A valid GitHub token to avoid rate limiting.
-githubToken=${GITHUB_TOKEN:-}
-# Prepare authorization header when performing request to api.github.com to avoid rate limiting, especially when testing locally.
-authorizationHeader="Authorization: Bearer ${githubToken}"
+docker_image_exists() {
+  local image=$1 tag=$2
+  local token
+  token=$(curl -fsSL "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${image}:pull" | jq -r '.token')
+  local status
+  status=$(curl -fsSL -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer ${token}" \
+    -H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
+    "https://registry-1.docker.io/v2/${image}/manifests/${tag}" 2>/dev/null)
+  [ "${status}" = "200" ]
+}
 
-# Always use the released versions.
-currentVersions=$(${curl} https://archive.tetratelabs.io/envoy/envoy-versions.json)
+versionsFile=$(mktemp)
+trap 'rm -f "${versionsFile}"' EXIT
+curl -fsSL https://archive.tetratelabs.io/envoy/envoy-versions.json > "${versionsFile}"
 
-# Fetch the last page number of releases (example value: 7), so we can get all of the releases.
-# To get the last page, we send a HEAD request to "https://api.github.com/repos/${sourceGitHubRepository}/releases",
-# then "grep" the "link" header value.
-# Reference: https://docs.github.com/en/rest/guides/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers.
-lastReleasePage=$(${curl}I ${githubToken:+ -H "${authorizationHeader}"} "https://api.github.com/repos/${sourceGitHubRepository}/releases" |
-  grep -Eo 'page=[0-9]+' | awk 'NR==2' | cut -d'=' -f2) || exit 1
+recentTags=$(gh api graphql \
+  -f owner="${sourceOwner}" \
+  -f name="${sourceName}" \
+  -f query='
+    query($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        releases(first: 10, orderBy: {field: CREATED_AT, direction: DESC}) {
+          nodes { tagName isDraft isPrerelease }
+        }
+      }
+    }
+  ' --jq '[.data.repository.releases.nodes[]
+    | select(.isDraft == false and .isPrerelease == false)
+    | .tagName]')
 
-for ((page = 1; page <= lastReleasePage; page++)); do
-  versions=$(${curl} ${githubToken:+ -H "${authorizationHeader}"} "https://api.github.com/repos/${sourceGitHubRepository}/releases?page=${page}" |
-    jq -er ".|map(select(.prerelease == false and .draft == false))|.[]|.name" | sort -n) || exit 1
+newVersions=$(echo "${recentTags}" | jq -r \
+  --slurpfile archive "${versionsFile}" \
+  '.[] | ltrimstr("v") as $ver
+   | select($archive[0].versions | has($ver) | not)
+   | "v" + $ver' | sort -V)
 
-  for version in ${versions}; do
-    if [[ $(echo "${currentVersions}" | jq -r --arg ver "${version#v}" '.versions | has($ver)') == "true" ]]; then
-      continue
-    fi
+for version in ${newVersions}; do
+  if ! docker_image_exists envoyproxy/envoy "${version}"; then
+    echo "skipping ${version}: Docker image not yet available"
+    continue
+  fi
 
-    if [[ "$(echo -e "${version#v}\n${lowestVersion}" | sort -V | tail -n 1)" == "${version#v}" ]]; then
-      echo "creating release for"' '"${version}"
-      gh workflow run release.yaml -f version="${version}"_debug -R "${targetGitHubRepository}"
-      gh workflow run release.yaml -f version="${version}" -R "${targetGitHubRepository}"
-    fi
-
-    # TODO(dio): For macOS, we still need to check for https://ghcr.io/v2/homebrew/core/envoy/tags/list and see if
-    # our released JSON has darwin tarballs in it.
-  done
+  echo "creating release for ${version}"
+  ${DRY_RUN:-} gh workflow run release.yaml -f version="${version}"_debug -R "${targetGitHubRepository}"
+  ${DRY_RUN:-} gh workflow run release.yaml -f version="${version}" -R "${targetGitHubRepository}"
 done
