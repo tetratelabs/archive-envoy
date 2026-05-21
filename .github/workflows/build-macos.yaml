@@ -61,7 +61,7 @@ jobs:
           mkdir -p bin
           mv bazel-bin/source/exe/envoy-static bin/envoy
           chmod u+w bin/envoy
-          strip bin/envoy
+          strip -x bin/envoy
 
       - name: "Publish attestation to GitHub"
         uses: actions/attest-build-provenance@v4
