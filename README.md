@@ -71,10 +71,11 @@ A debug version has more information in the backtrace, and may lead to faster di
 ## Archiving a release
 Archiving a version means running [archive_release_version.sh](bin/archive_release_version.sh) for the version you want.
 
-This happens automatically in the [release workflow](https://github.com/tetratelabs/archive-envoy/actions/workflows/release.yaml)
-when given a valid version parameter (ex v1.18.3 or v1.18.3_debug).
+This happens automatically in the [auto-release workflow](.github/workflows/auto-release.yaml),
+which triggers the [release workflow](https://github.com/tetratelabs/archive-envoy/actions/workflows/release.yaml)
+for new Envoy versions.
 
-Ex. You can also run manually like this:
+You can also trigger a release manually:
 ```bash
 # optionally check first
 ./bin/archive_release_version.sh envoyproxy/envoy v1.18.3 check

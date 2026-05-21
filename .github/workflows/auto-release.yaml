@@ -1,0 +1,25 @@
+# yamllint --format github .github/workflows/auto-release.yaml
+---
+name: "auto-release"
+
+on:
+  schedule:
+    - cron: '47 */6 * * *'  # Every 6 hours at :47
+  workflow_dispatch: {}
+
+permissions:
+  actions: write
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Check for new Envoy releases"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          ./bin/check_releases.sh envoyproxy/envoy
+          ${{ github.repository }}
