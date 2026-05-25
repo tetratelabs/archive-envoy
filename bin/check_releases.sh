@@ -62,11 +62,11 @@ newVersions=$(echo "${recentTags}" | jq -r \
 
 for version in ${newVersions}; do
   if ! docker_image_exists envoyproxy/envoy "${version}"; then
-    echo "skipping ${version}: Docker image not yet available"
+    echo >&2 "skipping ${version}: Docker image not yet available"
     continue
   fi
 
-  echo "creating release for ${version}"
+  echo >&2 "creating release for ${version}"
   ${DRY_RUN:-} gh workflow run release.yaml -f version="${version}"_debug -R "${targetGitHubRepository}"
   ${DRY_RUN:-} gh workflow run release.yaml -f version="${version}" -R "${targetGitHubRepository}"
 done

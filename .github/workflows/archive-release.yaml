@@ -65,11 +65,16 @@ jobs:
           "${VERSION}"/envoy-"${VERSION}"-darwin-arm64/bin/envoy
 
       - name: "Archive Envoy Release"
+        id: archive
         env:
           ARCHIVE_OS: ${{ inputs.os }}
-        run: >-
-          ./bin/archive_release_version.sh
-          envoyproxy/envoy "${VERSION}"
+        run: |
+          body=$(./bin/archive_release_version.sh envoyproxy/envoy "${VERSION}")
+          {
+            echo "body<<EOF"
+            echo "${body}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: "Upload GitHub Release"
         uses: softprops/action-gh-release@v3
@@ -77,10 +82,7 @@ jobs:
           tag_name: ${{ inputs.version }}
           prerelease: ${{ inputs.prerelease }}
           files: ${{ inputs.version }}/*
-          body: >-
-            ${{ inputs.envoy_sha != ''
-            && format('envoy_sha={0}', inputs.envoy_sha)
-            || '' }}
+          body: ${{ steps.archive.outputs.body }}
 
       - name: "Trigger Netlify deploy"
         if: >-

@@ -113,7 +113,7 @@ fi
 export RELEASE_DATE
 tarxz="${tar} --numeric-owner --owner 65534 --group 65534 --mtime ${RELEASE_DATE?-ex. 2021-05-11} -cpJf"
 
-echo "archiving ${sourceGitHubRepository} ${version} released on ${RELEASE_DATE}"
+echo >&2 "archiving ${sourceGitHubRepository} ${version} released on ${RELEASE_DATE}"
 # archive all dists for the version, generating https://archive.tetratelabs.io/release-versions-schema.json incrementally
 releaseVersions="{}"
 archiveRepo=${GITHUB_REPOSITORY:-tetratelabs/archive-envoy}
@@ -127,10 +127,10 @@ for os in darwin linux; do
     [ "${os}" = 'darwin' ] && [ "${arch}" = 'amd64' ] && continue
 
     dist="envoy-${version}-${os}-${arch}"
-    echo "using dist: ${dist}"
+    echo >&2 "using dist: ${dist}"
 
     if [ -d "${version}/${dist}" ]; then
-      echo "using existing dist"
+      echo >&2 "using existing dist"
     else
       # permit a version to fail rather than duplicating maintenance here and in archive_release.sh
       set +e
@@ -145,7 +145,7 @@ for os in darwin linux; do
     fi
 
     archive="${dist}.tar.xz"
-    echo "creating ${archive}"
+    echo >&2 "creating ${archive}"
     (cd "${version}" && ${tarxz} "${archive}" "${dist}")
     rm -rf "${version}/${dist}"
     s=$(sha256sum "${version}/${archive}" | awk '{print $1}') || exit 1
@@ -191,3 +191,9 @@ esac
 echo "${releaseVersions}" >"${version}/${name}-${version}.json"
 touchDate=$(echo "${RELEASE_DATE}"|sed 's/-//g')0000
 find "${version}" -exec touch -t "${touchDate}" {} \;
+
+# Emit the release body to stdout for the caller to capture.
+if [ -n "${envoy_sha:-}" ]; then
+  echo "envoy_sha=${envoy_sha}"
+fi
+echo "envoy_release_date=${RELEASE_DATE}"
