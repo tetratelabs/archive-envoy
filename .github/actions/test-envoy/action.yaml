@@ -2,26 +2,30 @@ name: "Test Envoy binary"
 description: "Download a release tarball and verify the binary runs"
 inputs:
   version:
-    description: "Release tag to download"
+    description: "Version to test (e.g. v1.34.1, dev, dev_debug)"
     required: true
 runs:
   using: composite
   steps:
     - shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
+      id: resolve
       run: |
         case "${{ runner.os }}" in
-          Linux)  os=linux  ;;
-          macOS)  os=darwin ;;
+          Linux)  echo "os=linux"  >> "$GITHUB_OUTPUT" ;;
+          macOS)  echo "os=darwin" >> "$GITHUB_OUTPUT" ;;
         esac
         case "${{ runner.arch }}" in
-          X64)    arch=amd64 ;;
-          ARM64)  arch=arm64 ;;
+          X64)    echo "arch=amd64" >> "$GITHUB_OUTPUT" ;;
+          ARM64)  echo "arch=arm64" >> "$GITHUB_OUTPUT" ;;
         esac
-        pattern="*-${os}-${arch}.tar.xz"
-        gh release -R "${GITHUB_REPOSITORY}" download \
-          "${{ inputs.version }}" -p "${pattern}"
-        tar --strip-components=2 -xpJf ./*.tar.xz && rm ./*.tar.xz
+    - uses: actions/download-artifact@v8
+      with:
+        name: "tarballs-${{ inputs.version }}-\
+          ${{ steps.resolve.outputs.os }}"
+        path: dist
+    - shell: bash
+      run: >-
+        tar --strip-components=2 -xpJf
+        dist/*-${{ steps.resolve.outputs.os }}-${{ steps.resolve.outputs.arch }}.tar.xz
     - shell: bash
       run: ./envoy --version
