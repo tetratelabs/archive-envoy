@@ -76,6 +76,12 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
+      - name: "Upload tarballs for testing"
+        uses: actions/upload-artifact@v7
+        with:
+          name: "tarballs-${{ inputs.version }}-${{ inputs.os }}"
+          path: "${{ inputs.version }}/*.tar.xz"
+
       - name: "Upload GitHub Release"
         uses: softprops/action-gh-release@v3
         with:
