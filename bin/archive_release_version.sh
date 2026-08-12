@@ -5,7 +5,7 @@
 # The full text of the Apache license is available in the LICENSE file at
 # the root of the repo.
 
-set -ue
+set -ueo pipefail
 
 # This creates a directory archiving a GitHub release version for all available platforms.
 #  * The first parameter ($1) is the source GitHub repository to archive. Ex envoyproxy/envoy
@@ -71,8 +71,9 @@ esac
 
 curl="curl -fsSL"
 
-# A valid GitHub token to avoid rate limiting.
-githubToken=${GITHUB_TOKEN:-}
+# A valid GitHub token to avoid rate limiting. GH_TOKEN is also used by the gh CLI below;
+# retain GITHUB_TOKEN as a compatibility fallback for local callers.
+githubToken=${GH_TOKEN:-${GITHUB_TOKEN:-}}
 # Prepare authorization header when performing request to api.github.com to avoid rate limiting, especially when testing locally.
 authorizationHeader="Authorization: Bearer ${githubToken}"
 

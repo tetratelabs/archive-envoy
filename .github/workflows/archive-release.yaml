@@ -35,7 +35,8 @@ jobs:
     permissions:
       contents: write
     env:
-      GH_TOKEN: ${{ github.token }}
+      # Use the existing cross-repository token for both gh and direct GitHub API requests.
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
       NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
       VERSION: ${{ inputs.version }}
