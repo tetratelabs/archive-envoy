@@ -23,6 +23,16 @@ You cannot reinstall an older nightly or have parallel dev builds for different
 branches. This keeps release count and maintenance bounded, and avoids
 notifying repository watchers daily.
 
+## Why is the Go cache keyed by `bin/car_envoy.sh`?
+
+The archive script invokes `car` with `go run` at a revision pinned in
+`bin/car_envoy.sh`. This repository is not otherwise a Go module, so it has no
+`go.mod` for `actions/setup-go` to use as its default cache dependency file.
+
+`cache-dependency-path` accepts any file whose contents represent the cached
+inputs. Hashing `bin/car_envoy.sh` preserves caching for the Go module and build
+caches, invalidates them when the pinned `car` revision changes, and avoids
+adding a module manifest solely for one build tool.
 
 ## Why does auto-release check Docker Hub before triggering?
 
