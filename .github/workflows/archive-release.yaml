@@ -49,6 +49,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: "1.24"
+          cache: false
 
       - name: "Download macOS Apple Silicon binary"
         if: inputs.os == 'darwin'
