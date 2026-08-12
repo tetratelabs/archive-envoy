@@ -29,10 +29,10 @@ The archive script invokes `car` with `go run` at a revision pinned in
 `bin/car_envoy.sh`. This repository is not otherwise a Go module, so it has no
 `go.mod` for `actions/setup-go` to use as its default cache dependency file.
 
-`cache-dependency-path` accepts any file whose contents represent the cached
-inputs. Hashing `bin/car_envoy.sh` preserves caching for the Go module and build
-caches, invalidates them when the pinned `car` revision changes, and avoids
-adding a module manifest solely for one build tool.
+[`cache-dependency-path`][setup-go-cache] accepts any file whose contents
+represent the cached inputs. Hashing `bin/car_envoy.sh` preserves caching for
+the Go module and build caches, invalidates them when the pinned `car` revision
+changes, and avoids adding a module manifest solely for one build tool.
 
 ## Why does auto-release check Docker Hub before triggering?
 
@@ -55,3 +55,4 @@ actually new.
 [envoy-publish]: https://github.com/envoyproxy/envoy/blob/main/.github/workflows/envoy-publish.yml
 [dockerhub-dev]: https://hub.docker.com/r/envoyproxy/envoy/tags?name=dev-
 [dockerhub-debug-dev]: https://hub.docker.com/r/envoyproxy/envoy/tags?name=debug-dev-
+[setup-go-cache]: https://github.com/actions/setup-go/blob/main/docs/advanced-usage.md#multi-target-builds
