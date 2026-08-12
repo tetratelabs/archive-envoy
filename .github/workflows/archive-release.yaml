@@ -49,6 +49,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: "1.24"
+          # This repository has no go.mod; car is invoked with a pinned version via go run.
           cache: false
 
       - name: "Download macOS Apple Silicon binary"
