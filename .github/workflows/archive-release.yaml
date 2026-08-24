@@ -49,6 +49,8 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: "1.24"
+          # car is invoked via go run at a revision pinned in this script.
+          cache-dependency-path: bin/car_envoy.sh
 
       - name: "Download macOS Apple Silicon binary"
         if: inputs.os == 'darwin'
