@@ -61,6 +61,24 @@ jobs:
       os: darwin
     secrets: inherit
 
+  notify-patch-service:
+    name: "notify patch-service"
+    if: ${{ !endsWith(github.event.inputs.version, '_debug') }}
+    needs:
+      - resolve
+      - archive-linux
+      - archive-macos
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      PATCH_SERVICE_TOKEN: ${{ secrets.TETRATE_PATCH_SERVICE_TOKEN }}
+      VERSION_TAG: ${{ needs.resolve.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Report OSS Envoy release"
+        run: ./bin/notify_patch_service.sh "${VERSION_TAG}"
+
   # Smoke tests run after publishing so uploads are not blocked by test failures.
   test-linux:
     name: "test (linux ${{ matrix.arch }})"
