@@ -37,6 +37,16 @@ jobs:
           repository: envoyproxy/envoy
           ref: ${{ inputs.ref }}
 
+      - name: "Check out archive tooling"
+        if: inputs.compilation_mode == 'dbg'
+        uses: actions/checkout@v6
+        with:
+          path: .archive-envoy
+
+      - name: "Free disk space for debug build"
+        if: inputs.compilation_mode == 'dbg'
+        run: ./.archive-envoy/bin/cleanup_macos_runner.sh
+
       - uses: bazel-contrib/setup-bazel@0.19.0
 
       - name: "Configure GitHub auth for Bazel downloads"
