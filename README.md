@@ -14,6 +14,8 @@ These appear as a top-level `"dev"` key in [envoy-versions.json](https://archive
 and [envoy-versions_debug.json](https://archive.tetratelabs.io/envoy/envoy-versions_debug.json), alongside the existing
 `"versions"` key. Consumers that don't read `"dev"` are unaffected.
 
+Test nightly SHA resolution and dispatch locally with `./test/nightly_test.sh`.
+
 ## Standard releases
 A standard release includes `envoy-$version-$os-$arch.tar.xz` for every platform, including a production, non_debug,
 binary.

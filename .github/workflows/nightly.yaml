@@ -14,6 +14,10 @@ on:
           - dev
           - dev_debug
         default: dev
+      envoy_sha:
+        description: 'Envoy commit SHA (blank resolves the latest successful publish)'
+        type: string
+        required: false
 
 concurrency:
   group: nightly-${{ inputs.version || 'trigger' }}
@@ -30,13 +34,15 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       actions: write
+      contents: read
     steps:
-      - run: |
-          gh workflow run nightly.yaml -f version=dev
-          gh workflow run nightly.yaml -f version=dev_debug
+      - uses: actions/checkout@v6
+
+      - name: "Trigger dev builds"
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+        run: ./bin/trigger_nightly.sh
 
   resolve:
     name: "resolve"
@@ -52,16 +58,9 @@ jobs:
         id: resolve
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ref=$(./bin/resolve_envoy_sha.sh)
-          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
-
-          version="${{ inputs.version }}"
-          if [[ "${version}" == *_debug ]]; then
-            echo "compilation_mode=dbg" >> "$GITHUB_OUTPUT"
-          else
-            echo "compilation_mode=opt" >> "$GITHUB_OUTPUT"
-          fi
+          NIGHTLY_VERSION: ${{ inputs.version }}
+          REQUESTED_ENVOY_SHA: ${{ inputs.envoy_sha }}
+        run: ./bin/resolve_nightly_inputs.sh
 
   build-envoy-macos:
     name: "build envoy (macos)"
